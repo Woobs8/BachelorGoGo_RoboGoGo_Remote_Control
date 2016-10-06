@@ -128,13 +128,20 @@ public class WiFiDirectService extends Service {
                 Log.d("WiFiDirectService","Successfully connected to " + deviceName);
                 mControlClient = new ControlClient(deviceAddress,port);
                 mStatusClient = new RobotStatusClient(port,WiFiDirectService.this);
-
+                //Broadcast to inform activities that a connection was established
+                Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, true);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
             }
 
             @Override
             public void onFailure(int reason) {
                 //failure logic
                 Log.d("WiFiDirectService","Connection to " + deviceName + " was unsuccessful");
+                //Broadcast to inform activities that no connection was established
+                Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
             }
         });
     }
@@ -206,11 +213,12 @@ public class WiFiDirectService extends Service {
                 else {
                     mConnected = false;
                     mManager.cancelConnect(mChannel, null);
-                }
-                Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
-                localBroadcast.sendBroadcast(notifyActivity);
 
+                    //Broadcast to inform activities that the connection has been lost
+                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
+                }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 // Respond to this device's wifi state changing
                 Intent notifyActivity = new Intent(WIFI_DIRECT_DEVICE_CHANGED);
