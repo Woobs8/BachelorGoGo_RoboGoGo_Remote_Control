@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="Robot Settings">
+
+        <EditTextPreference
+            android:key="device_name_preference"
+            android:defaultValue="roboGG"
+            android:title="Device Name"
+            android:summary="Change the name of the of currently connected robot. When attempting to connect to this robot in the future, this will be the name shown"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:maxLines="1" />
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="power_save_mode_preference"
+            android:title="Power Saving Mode"
+            android:summary="This option will limit the speed of the robot to reduce battery consumption" />
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="assisted_driving_mode_preference"
+            android:title="Assisted Driving Mode"
+            android:summary="This option will aid in transitioning between horizontal and vertical surfaces" />
+
+        <ListPreference
+            android:defaultValue="-1"
+            android:key="video_preference"
+            android:title="Video settings"
+            android:summary="Resolution and Frames Per Second (FPS) settings for the recorded video"
+            android:entries="@array/VideoSettings"
+            android:entryValues="@array/VideoSettingsData"
+            android:dialogTitle="Choose video configuration" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Local Settings">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="local_picture_storage_preference"
+            android:title="Save pictures locally"
+            android:summaryOn="Pictures taken will be stored on this device as well as the robot. This option requires video streaming to be enabled"
+            android:summaryOff="Pictures will only be stored on the robot" />
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="local_video_storage_preference"
+            android:title="Save video locally"
+            android:summaryOn="Streamed video will be stored on this device. This option requires video streaming to be enabled"
+            android:summaryOff="No video will be stored on this device" />
+
+    </PreferenceCategory>
+</PreferenceScreen>
