@@ -13,6 +13,7 @@ import java.net.DatagramSocket;
  */
 
 public class RobotStatusClient {
+    static final String TAG = "RobotStatusClient";
     private final int packetSize = 1024;
     private int mPort;
     private String mReceivedString;
@@ -41,7 +42,7 @@ public class RobotStatusClient {
 
             protected void onPostExecute(Void result)
             {
-                Log.d("RobotStatusClient","Finished receiving data");
+                Log.d(TAG,"Finished receiving data");
                 super.onPostExecute(result);
             }
         };
@@ -58,10 +59,10 @@ public class RobotStatusClient {
             byte[] receiveData = new byte[packetSize];
             while (mReceiveData) {
                 DatagramPacket recv_packet = new DatagramPacket(receiveData, receiveData.length);
-                Log.d("RobotStatusClient", "receiving data");
+                Log.d(TAG, "receiving data");
                 mDatagramSocket.receive(recv_packet);
                 mReceivedString = new String(recv_packet.getData());
-                Log.d("RobotStatusClient", "Received string: " + mReceivedString);
+                Log.d(TAG, "Received string: " + mReceivedString);
 
                 //Broadcast received data
                 Intent notifyActivity = new Intent(WiFiDirectService.ROBOT_STATUS_RECEIVED);
@@ -69,7 +70,7 @@ public class RobotStatusClient {
                 LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
             }
         } catch (Exception e) {
-            Log.e("RobotStatusClient", "Error receiving data");
+            Log.e(TAG, "Error receiving data");
             e.printStackTrace();
         } finally {
             if (mDatagramSocket != null)

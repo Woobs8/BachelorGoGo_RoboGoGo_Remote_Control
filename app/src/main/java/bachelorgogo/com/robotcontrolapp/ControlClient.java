@@ -12,13 +12,14 @@ import java.net.InetAddress;
  */
 
 public class ControlClient {
-    private String mHostAddress;
+    static final String TAG = "ControlClient";
+    private InetAddress mHostAddress;
     private int mPort;
     private String mCommand;
     private DatagramSocket mDatagramSocket;
     private AsyncTask<Void, Void, Void> async_cient;
 
-    ControlClient(String host, int port) {
+    ControlClient(InetAddress host, int port) {
         mHostAddress = host;
         mPort = port;
         mDatagramSocket = null;
@@ -34,17 +35,16 @@ public class ControlClient {
             {
                 try
                 {
-                    Log.d("ControlClient","Sending command: " + mCommand);
+                    Log.d(TAG,"Sending command: " + mCommand + "to " + mHostAddress.toString());
                     mDatagramSocket = new DatagramSocket();
-                    InetAddress hostAddress = InetAddress.getByName(mHostAddress);
                     int msg_length = mCommand.length();
                     byte[] message = mCommand.getBytes();
-                    DatagramPacket dp = new DatagramPacket(message, msg_length, hostAddress, mPort);
+                    DatagramPacket dp = new DatagramPacket(message, msg_length, mHostAddress, mPort);
                     mDatagramSocket.send(dp);
                 }
                 catch (Exception e)
                 {
-                    Log.d("ControlClient","Error sending command");
+                    Log.d(TAG,"Error sending command");
                     e.printStackTrace();
                 }
                 finally
@@ -59,7 +59,7 @@ public class ControlClient {
 
             protected void onPostExecute(Void result)
             {
-                Log.d("ControlClient","Finished sending command");
+                Log.d(TAG,"Finished sending command");
                 super.onPostExecute(result);
             }
         };
