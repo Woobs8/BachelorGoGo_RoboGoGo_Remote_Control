@@ -22,10 +22,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -42,7 +40,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     public final static String DEVICE_OBJECTS_LIST = "mDeviceObjects";
 
     // WifiService stuff
-    WifiDirectService mService;
+    WiFiDirectService mService;
     boolean mBound;
     boolean mConnected = false;
 
@@ -92,7 +90,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         setSupportActionBar(myToolbar);
 
         //Start Wifi Service
-        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WifiDirectService.class);
+        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         startService(wifiServiceIntent);
 
         // Initialize list of devices, adapter and attach adapter to listview
@@ -127,12 +125,12 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     protected void onResume() {
         Log.d("onResume", "Called");
         mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WifiDirectService.WIFI_DIRECT_PEERS_CHANGED);
-        mIntentFilter.addAction(WifiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
-        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WifiDirectService.class);
+        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         bindToService(wifiServiceIntent);
         super.onResume();
@@ -168,7 +166,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         public void onServiceConnected(ComponentName className, IBinder service) {
             Log.d("onServiceConnected", "called");
             // We've bound to LocalService, cast the IBinder and get LocalService instance
-            WifiDirectService.LocalBinder binder = (WifiDirectService.LocalBinder) service;
+            WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
         }
@@ -195,17 +193,17 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.d("Broadcast Receiver:", "Broadcast received from WifiDirectService");
-            if(WifiDirectService.WIFI_DIRECT_PEERS_CHANGED.equals(action)) {
+            Log.d("Broadcast Receiver:", "Broadcast received from WiFiDirectService");
+            if(WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED.equals(action)) {
                 Log.d("BroadcastReceiver:", "Peers changed");
                 if (mWifiManager != null) {
                     mWifiManager.requestPeers(mChannel, mPeerListListener);
                 }
                 Toast.makeText(ConnectActivity.this, "Peers Changed", Toast.LENGTH_SHORT).show();
             }
-            else if(WifiDirectService.WIFI_DIRECT_CONNECTION_CHANGED.equals(action)) {
+            else if(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED.equals(action)) {
                 Log.d("BroadcastReceiver", "WIFI_DIRECTION_CONN_CHANGED");
-                if(intent.getBooleanExtra(WifiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false)) {
+                if(intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false)) {
                     Log.d("BroadcastReceiver", "Connection True");
                     mConnected = true;
                     Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
