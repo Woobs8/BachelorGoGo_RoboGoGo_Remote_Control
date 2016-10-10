@@ -1,6 +1,7 @@
 package bachelorgogo.com.robotcontrolapp;
 
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.Log;
 
 import java.net.DatagramPacket;
@@ -17,7 +18,7 @@ public class ControlClient {
     private int mPort;
     private String mCommand;
     private DatagramSocket mDatagramSocket;
-    private AsyncTask<Void, Void, Void> async_cient;
+    private AsyncTask<Void, Void, Void> async_client;
 
     ControlClient(InetAddress host, int port) {
         mHostAddress = host;
@@ -28,14 +29,14 @@ public class ControlClient {
     public void sendCommand(String command)
     {
         mCommand = command;
-        async_cient = new AsyncTask<Void, Void, Void>()
+        async_client = new AsyncTask<Void, Void, Void>()
         {
             @Override
             protected Void doInBackground(Void... params)
             {
                 try
                 {
-                    Log.d(TAG,"Sending command: " + mCommand + "to " + mHostAddress.toString());
+                    Log.d(TAG,"Sending command: " + mCommand);
                     mDatagramSocket = new DatagramSocket();
                     int msg_length = mCommand.length();
                     byte[] message = mCommand.getBytes();
@@ -63,6 +64,10 @@ public class ControlClient {
                 super.onPostExecute(result);
             }
         };
-        async_cient.execute();
+        // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+        else
+            async_client.execute((Void[]) null);
     }
 }

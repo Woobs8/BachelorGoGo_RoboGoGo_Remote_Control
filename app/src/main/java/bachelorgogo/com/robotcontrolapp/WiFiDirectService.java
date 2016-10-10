@@ -7,26 +7,40 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.AsyncTask;
 import android.os.Binder;
+import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
+
+import bachelorgogo.com.robotcontrolapp.ControlClient;
 
 public class WiFiDirectService extends Service {
-    // WiFi Direct Local Broadcast actions
     static final String TAG = "WiFiDirectService";
+    // WiFi Direct Local Broadcast actions
     static final String WIFI_DIRECT_CONNECTION_UPDATED_KEY = "WiFi_Direct_update";
+    static final String WIFI_DIRECT_PEER_NAME_KEY = "WiFi_Direct_peer_name_key";
+    static final String WIFI_DIRECT_PEER_ADDRESS_KEY = "WiFi_Direct_peer_address_key";
     static final String WIFI_DIRECT_STATE_CHANGED = "WiFi_Direct_state_changed";
     static final String WIFI_DIRECT_PEERS_CHANGED = "WiFi_Direct_peers_changed";
+    static final String WIFI_DIRECT_SERVICES_CHANGED = "WiFi_Direct_services_changed";
     static final String WIFI_DIRECT_CONNECTION_CHANGED = "WiFi_Direct_connection_changed";
     static final String WIFI_DIRECT_DEVICE_CHANGED = "WiFi_Direct_device_changed";
 
@@ -41,15 +55,26 @@ public class WiFiDirectService extends Service {
     WifiP2pManager.PeerListListener mPeerListListener;
     InetAddress mRobotAddress;
     ServerSocket mServerSocket;
+    Socket mSocket;
+    WifiP2pDnsSdServiceRequest mServiceRequest;
+    private HashMap<String, String> mDevices = new HashMap<>();
+    Handler mServiceDiscoveryHandler;
+    Runnable mServiceDiscoveryRunnable;
 
-    ControlClient mControlClient;
+
+    ControlClient mCommandClient;
     RobotStatusClient mStatusClient;
 
     private boolean mWiFiDirectEnabled = false;
     private boolean mConnected = false;
-    private boolean mDiscoveringPeers = false;
+    private boolean mCurrentlyDiscoveringPeers = false;
+    private boolean mShouldDiscoverPeers = true;
     private int mDiscoverPeersListeners = 0;
     private int mGroupOwnerPort = 9999;
+    private int mHostPort = -1;
+    private int mLocalPort = 4999;
+    private int mServiceDiscoveryInterval = 120000; //2 min * 60 sec * 1000 msec
+    private final String mSystemName = "eROTIC";
 
     // Binder given to clients
     private final IBinder mBinder = (IBinder) new LocalBinder();
@@ -77,7 +102,25 @@ public class WiFiDirectService extends Service {
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
-                Log.d(TAG,"peers available");
+                Log.d("Peer listener:","peers available");
+            }
+        };
+
+        //Network service related
+        setUpServiceDiscovery();
+        mServiceDiscoveryHandler = new Handler();
+        mServiceDiscoveryRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    if(!mConnected)
+                        discoverService();
+                    mServiceDiscoveryHandler.postDelayed(this, mServiceDiscoveryInterval);
+                }
+                catch (Exception e) {
+                    Log.d(TAG,"Error running continuous service discovery");
+                    e.printStackTrace();
+                }
             }
         };
 
@@ -101,10 +144,13 @@ public class WiFiDirectService extends Service {
         Log.d(TAG, "Service bound");
         if (intent != null) {
             boolean discoverPeers = intent.getBooleanExtra("key",false);
-            if (discoverPeers)
+            if (discoverPeers) {
                 mDiscoverPeersListeners++;
-                if(!mDiscoveringPeers)
+                if (!mCurrentlyDiscoveringPeers) {
                     discoverPeers();
+                    mServiceDiscoveryHandler.postDelayed(mServiceDiscoveryRunnable, 0);
+                }
+            }
         }
         registerReceiver(mReceiver, mIntentFilter);
         return mBinder;
@@ -116,8 +162,16 @@ public class WiFiDirectService extends Service {
         unregisterReceiver(mReceiver);
         if (intent != null) {
             boolean discoverPeers = intent.getBooleanExtra("key",false);
-            if (!discoverPeers)
+            if (discoverPeers)
                 mDiscoverPeersListeners--;
+            //If no more listeners - stop discovering services
+            if(mDiscoverPeersListeners <= 0) {
+                stopDiscoveringPeers();
+                mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
+                stopServiceDiscovery();
+                if(mStatusClient != null)
+                    mStatusClient.stop();
+            }
         }
         return super.onUnbind(intent);
     }
@@ -125,94 +179,47 @@ public class WiFiDirectService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mManager.removeGroup(mChannel,null);
         Log.d(TAG, "Service destroyed");
+        stopServiceDiscovery();
+        stopDiscoveringPeers();
+        if(mStatusClient != null)
+            mStatusClient.stop();
     }
 
-    public void connectToDevice(final String deviceAddress, final int port) {
+    public void connectToDevice(final String deviceAddress) {
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = deviceAddress;
+        config.groupOwnerIntent = 0;
         mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
             @Override
             public void onSuccess() {
                 //success logic
-                Log.d(TAG,"Successfully connected to " + deviceAddress);
-
-                //Resolve IP addresses
-                mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
-                    @Override
-                    public void onConnectionInfoAvailable(WifiP2pInfo info) {
-                        if (info.groupFormed) {
-                            Log.d(TAG, "Robot IP resolved to: " + mRobotAddress.toString());
-                            if(info.isGroupOwner) {
-                                AsyncTask<Void, Void, Void> async_client = new AsyncTask<Void, Void, Void>() {
-                                    @Override
-                                    protected Void doInBackground(Void... params) {
-                                        try {
-                                            mServerSocket = new ServerSocket(mGroupOwnerPort);
-                                            Socket client = mServerSocket.accept();
-                                            mRobotAddress = client.getInetAddress();
-                                            if(mRobotAddress != null) {
-                                                Log.d(TAG, "Robot IP resolved to: " + mRobotAddress.toString());
-                                                mServerSocket.close();
-                                                mControlClient = new ControlClient(mRobotAddress,port);
-                                                mStatusClient = new RobotStatusClient(port,WiFiDirectService.this);
-                                                //Broadcast to inform activities that a connection was established
-                                                Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                                                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, true);
-                                                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
-                                            }
-                                        } catch (IOException e) {
-                                            Log.e(TAG, "Error listening for client IPs");
-                                            e.printStackTrace();
-                                        }
-                                        return null;
-                                    }
-                                };
-                                async_client.execute();
-                            } else {
-                                mRobotAddress = info.groupOwnerAddress;
-                                if (mRobotAddress != null) {
-                                    Log.d(TAG, "Robot IP resolved to: " + mRobotAddress.toString());
-                                    mControlClient = new ControlClient(mRobotAddress,port);
-                                    mStatusClient = new RobotStatusClient(port,WiFiDirectService.this);
-                                    //Broadcast to inform activities that a connection was established
-                                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, true);
-                                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
-                                }
-                            }
-                        }
-                    }
-                });
+                Log.d(TAG,"Successful attempt to connect to " + deviceAddress);
             }
 
             @Override
             public void onFailure(int reason) {
                 //failure logic
-                Log.d(TAG,"Connection to " + deviceAddress + " was unsuccessful");
-                //Broadcast to inform activities that no connection was established
-                Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
-                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
+                Log.d(TAG,"Error attempting to connect to " + deviceAddress);
             }
         });
     }
 
     public void disconnectFromDevice() {
-        Log.d(TAG,"Disconnecting from device");
         mManager.cancelConnect(mChannel,null);
-        mControlClient = null;
-        mStatusClient = null;
+        mCommandClient = null;
     }
 
     public void sendControlCommand(String command) {
-        if (mControlClient != null) {
-            mControlClient.sendCommand(command);
+        if (mCommandClient != null) {
+            mCommandClient.sendCommand(command);
         }
     }
 
     private void discoverPeers() {
+        mShouldDiscoverPeers = true;
         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -226,9 +233,127 @@ public class WiFiDirectService extends Service {
         });
     }
 
-    public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
-        static final String TAG = "WiFiDirectBroadcast";
+    private void stopDiscoveringPeers() {
+        mShouldDiscoverPeers = false;
+        if(mManager != null) {
+            mManager.stopPeerDiscovery(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, "Manually stopped discovering peers");
+                }
 
+                @Override
+                public void onFailure(int reason) {
+                    Log.d(TAG, "Failed to manually stop discovering peers");
+                }
+            });
+        }
+    }
+
+    private void setUpServiceDiscovery() {
+        WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
+            @Override
+        /* Callback includes:
+         * fullDomain: full domain name: e.g "printer._ipp._tcp.local."
+         * record: TXT record dta as a map of key/value pairs.
+         * device: The device running the advertised service.
+         */
+            public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
+                Log.d(TAG, "DnsSdTxtRecord available -" + record.toString());
+
+                if(mDevices.containsKey(device.deviceAddress))
+                    mDevices.remove(device.deviceAddress);
+
+                mDevices.put(device.deviceAddress, record.get("device_name").toString());
+
+            }
+        };
+
+        WifiP2pManager.DnsSdServiceResponseListener servListener = new WifiP2pManager.DnsSdServiceResponseListener() {
+            @Override
+            public void onDnsSdServiceAvailable(String instanceName, String registrationType,
+                                                WifiP2pDevice resourceType) {
+
+                // Update the device name with the human-friendly version from
+                // the DnsTxtRecord, assuming one arrived.
+                resourceType.deviceName = mDevices
+                        .containsKey(resourceType.deviceAddress) ? mDevices
+                        .get(resourceType.deviceAddress) : resourceType.deviceName;
+
+                Log.d(TAG, "onServiceAvailable " + instanceName);
+
+                if(instanceName.equals("_"+mSystemName)) {
+                    Intent notifyActivity = new Intent(WIFI_DIRECT_SERVICES_CHANGED);
+                    notifyActivity.putExtra(WIFI_DIRECT_PEER_NAME_KEY, resourceType.deviceName);
+                    notifyActivity.putExtra(WIFI_DIRECT_PEER_ADDRESS_KEY, resourceType.deviceAddress);
+                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
+                }
+            }
+        };
+        mManager.setDnsSdResponseListeners(mChannel, servListener, txtListener);
+    }
+
+    private void discoverService() {
+        mServiceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+        mManager.removeServiceRequest(mChannel, mServiceRequest, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                mManager.addServiceRequest(mChannel, mServiceRequest,
+                        new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG,"Successfully added service request");
+                                mManager.discoverServices(mChannel, new WifiP2pManager.ActionListener() {
+
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.d(TAG,"Successfully discovered services");
+                                    }
+
+                                    @Override
+                                    public void onFailure(int code) {
+                                        Log.d(TAG,"Failed to discover services");
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onFailure(int code) {
+                                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+                                Log.d(TAG,"Failed to add service request");
+                            }
+                        });
+            }
+
+            @Override
+            public void onFailure(int reason) {
+
+            }
+        });
+    }
+
+    private void stopServiceDiscovery() {
+        //Stop continuously discovering services
+        if(mServiceDiscoveryHandler != null && mServiceDiscoveryRunnable != null)
+            mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
+
+        //Stop pending service request
+        if(mManager != null && mServiceRequest != null)
+            mManager.removeServiceRequest(mChannel, mServiceRequest, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG,"Service request successfully removed");
+                    mServiceRequest = null;
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.d(TAG,"Error removing service request");
+                }
+            });
+    }
+
+    public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         private WifiP2pManager mManager;
         private WifiP2pManager.Channel mChannel;
         private WiFiDirectService mService;
@@ -244,7 +369,7 @@ public class WiFiDirectService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            LocalBroadcastManager localBroadcast = LocalBroadcastManager.getInstance(mService.getApplicationContext());
+            final LocalBroadcastManager localBroadcast = LocalBroadcastManager.getInstance(mService.getApplicationContext());
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 // Check to see if Wi-Fi is enabled and notify appropriate activity
                 int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
@@ -265,16 +390,124 @@ public class WiFiDirectService extends Service {
                 NetworkInfo networkState = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 // Check if we connected or disconnected.
                 if (networkState.isConnected()) {
-                    mConnected = true;
+                    if(!mConnected) {
+                        mConnected = true;
+                        //Resolve IP addresses
+                        mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                            @Override
+                            public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                                if (info.groupFormed) {
+                                    if (info.isGroupOwner) {
+                                        //Listen for clients and exchange ports
+                                        AsyncTask<Void, Void, Void> async_client = new AsyncTask<Void, Void, Void>() {
+                                            @Override
+                                            protected Void doInBackground(Void... params) {
+                                                try {
+                                                    mServerSocket = new ServerSocket(mGroupOwnerPort);
+                                                    Log.d(TAG,"Listening for clients on port " + Integer.toString(mGroupOwnerPort));
+                                                    mSocket = mServerSocket.accept();
+                                                    mRobotAddress = mSocket.getInetAddress();
+                                                    publishProgress();
+                                                    DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
+                                                    DataInputStream in = new DataInputStream(mSocket.getInputStream());
+
+                                                    //read client port
+                                                    String dataStr = in.readUTF();
+                                                    int hostPort = Integer.valueOf(dataStr);
+                                                    if (hostPort > 0 && hostPort < 9999)
+                                                        mHostPort = hostPort;
+                                                    Log.d(TAG, "client resolved to: " + mRobotAddress + " (port " + mHostPort + ")");
+
+                                                    //Send port to client
+                                                    out.writeUTF(Integer.toString(mLocalPort));
+
+                                                    mSocket.close();
+                                                    mServerSocket.close();
+                                                } catch (IOException e) {
+                                                    Log.e(TAG, "Error listening for client IPs");
+                                                    e.printStackTrace();
+                                                }
+                                                return null;
+                                            }
+
+                                            @Override
+                                            protected void onPostExecute(Void aVoid) {
+                                                mCommandClient = new ControlClient(mRobotAddress, mHostPort);
+                                                mStatusClient = new RobotStatusClient(mLocalPort, WiFiDirectService.this);
+                                                mStatusClient.start();
+                                                stopDiscoveringPeers();
+                                                stopServiceDiscovery();
+                                            }
+                                        };
+                                        // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                                            async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
+                                        else
+                                            async_client.execute((Void[])null);
+                                    } else {
+                                        mRobotAddress = info.groupOwnerAddress;
+                                        if (mRobotAddress != null) {
+                                            //transmit ip to group owner and exchange ports
+                                            AsyncTask<Void, Void, Void> async_transmit_ip = new AsyncTask<Void, Void, Void>() {
+                                                @Override
+                                                protected Void doInBackground(Void... params) {
+                                                    try {
+                                                        mSocket = new Socket();
+                                                        mSocket.bind(null);
+                                                        mSocket.connect((new InetSocketAddress(mRobotAddress, mGroupOwnerPort)), 500);
+                                                        DataInputStream in = new DataInputStream(mSocket.getInputStream());
+                                                        DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
+
+                                                        //Send port to server
+                                                        out.writeUTF(Integer.toString(mLocalPort));
+
+                                                        //read server port
+                                                        String dataStr = in.readUTF();
+                                                        int hostPort = Integer.valueOf(dataStr);
+                                                        if (hostPort > 0 && hostPort < 9999)
+                                                            mHostPort = hostPort;
+                                                        mSocket.close();
+                                                        Log.d(TAG, "host resolved to: " + mRobotAddress + " (port " + mHostPort + ")");
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    return null;
+                                                }
+
+                                                @Override
+                                                protected void onPostExecute(Void aVoid) {
+                                                    mCommandClient = new ControlClient(mRobotAddress, mHostPort);
+                                                    mStatusClient = new RobotStatusClient(mLocalPort, WiFiDirectService.this);
+                                                    mStatusClient.start();
+                                                    stopDiscoveringPeers();
+                                                    stopServiceDiscovery();
+
+                                                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                                                    localBroadcast.sendBroadcast(notifyActivity);
+                                                }
+                                            };
+                                            // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                                                async_transmit_ip.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
+                                            else
+                                                async_transmit_ip.execute((Void[])null);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
                 else {
                     mConnected = false;
                     mManager.cancelConnect(mChannel, null);
+                    if(mStatusClient != null)
+                        mStatusClient.stop();
 
-                    //Broadcast to inform activities that the connection has been lost
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
                     notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
-                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
+                    localBroadcast.sendBroadcast(notifyActivity);
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 // Respond to this device's wifi state changing
@@ -286,17 +519,16 @@ public class WiFiDirectService extends Service {
                 int discovery = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE, -1);
                 if (discovery == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED) {
                     Log.d(TAG, "Peer discovery started");
-                    mDiscoveringPeers = true;
+                    mCurrentlyDiscoveringPeers = true;
                 }
                 //Continuously discover peers if there are listeners
                 else if (discovery == WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED) {
                     Log.d(TAG, "Peer discovery stopped");
-                    mDiscoveringPeers = false;
-                    if (mDiscoverPeersListeners > 0)
+                    mCurrentlyDiscoveringPeers = false;
+                    if (mDiscoverPeersListeners > 0 && mShouldDiscoverPeers)
                         discoverPeers();
                 }
             }
         }
     }
 }
-
