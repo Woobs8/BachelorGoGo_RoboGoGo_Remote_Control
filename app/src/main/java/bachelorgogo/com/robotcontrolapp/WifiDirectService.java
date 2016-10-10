@@ -18,6 +18,7 @@ public class WifiDirectService extends Service {
     public static final String WIFI_DIRECT_PEERS_CHANGED = "WiFi_Direct_peers_changed";
     public static final String WIFI_DIRECT_CONNECTION_CHANGED = "WiFi_Direct_connection_changed";
     public static final String WIFI_DIRECT_DEVICE_CHANGED = "WiFi_Direct_device_changed";
+    public static final String WIFI_DIRECT_CONNECTION_UPDATED_KEY = "WiFi_Direct_update";
 
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
@@ -174,5 +175,18 @@ public class WifiDirectService extends Service {
                 LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
             }
         }
+    }
+
+    public void connectToDevice(final String deviceAddress, final int port) {
+        // Emulate succesful connection
+        Log.d("WifiDirectService", "connectToDevice");
+        Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+        notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, true);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
+        return;
+    }
+
+    public void disconnectFromDevice() {
+        return;
     }
 }

@@ -1,5 +1,6 @@
 package bachelorgogo.com.robotcontrolapp;
 
+import android.app.DialogFragment;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -9,6 +10,7 @@ import android.content.ServiceConnection;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -22,13 +24,14 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public class ConnectActivity extends AppCompatActivity {
+public class ConnectActivity extends AppCompatActivity implements ConnectDialogFragment.ConnectDialogListener{
 
     // Fragment argument keys
     public final static String DEVICE_NAME = "deviceName";
@@ -36,10 +39,12 @@ public class ConnectActivity extends AppCompatActivity {
 
     //Extra Keys
     public final static String DISCOVER_PEERS = "Discover peers";
+    public final static String DEVICE_OBJECTS_LIST = "mDeviceObjects";
 
     // WifiService stuff
     WifiDirectService mService;
     boolean mBound;
+    boolean mConnected = false;
 
     WifiP2pManager mWifiManager;
     WifiP2pManager.Channel mChannel;
@@ -50,9 +55,17 @@ public class ConnectActivity extends AppCompatActivity {
     // UI Elements
     Toolbar myToolbar;
     ListView lstViewDevices;
+    private ProgressBar mProgress;
 
     ArrayList<DeviceObject> mDeviceObjects;
     DeviceObjectAdapter mDeviceObjectAdapter;
+
+    // constans
+    final static int mTimeout_ms = 3000;
+
+    //
+    private String mSelectedDeviceAddress;
+    private final int port = 9000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,12 +79,11 @@ public class ConnectActivity extends AppCompatActivity {
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
-                // TODO - DO SHIT WITH PEERS
+                mDeviceObjectAdapter.clear();
                 Log.d("Connect Activity", "onPeersAvailable");
                 for(Iterator<WifiP2pDevice> i = peers.getDeviceList().iterator(); i.hasNext();) {
                     WifiP2pDevice item = i.next();
                     mDeviceObjectAdapter.add(new DeviceObject(item.deviceName, item.deviceAddress));
-                    // TODO - also add address
                 }
             }
         };
@@ -84,7 +96,12 @@ public class ConnectActivity extends AppCompatActivity {
         startService(wifiServiceIntent);
 
         // Initialize list of devices, adapter and attach adapter to listview
-        mDeviceObjects = new ArrayList<DeviceObject>();
+        if(savedInstanceState != null) {
+            mDeviceObjects = savedInstanceState.getParcelableArrayList(DEVICE_OBJECTS_LIST);
+        }
+        else {
+            mDeviceObjects = new ArrayList<DeviceObject>();
+        }
         mDeviceObjectAdapter = new DeviceObjectAdapter(ConnectActivity.this, mDeviceObjects);
         lstViewDevices = (ListView)findViewById(R.id.lstViewAvailRobots);
         lstViewDevices.setAdapter(mDeviceObjectAdapter);
@@ -92,15 +109,9 @@ public class ConnectActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 DeviceObject item = (DeviceObject)lstViewDevices.getItemAtPosition(position);
-                Toast.makeText(ConnectActivity.this, "Dialog opens here", Toast.LENGTH_SHORT).show();
-                // TODO Open dialog and do shit
-                // TODO - Set ip address textview
-                ConnectDialogFragment dialog = new ConnectDialogFragment();
-                Bundle args = new Bundle();
-                args.putString(DEVICE_NAME, item.getName());
-                args.putString(DEVICE_ADDRESS, item.getDeviceAddress());
-                dialog.setArguments(args);
-                dialog.show(getFragmentManager(), "dialog");
+                //Toast.makeText(ConnectActivity.this, "Dialog opens here", Toast.LENGTH_SHORT).show();
+                mSelectedDeviceAddress = item.getDeviceAddress();
+                showConnectDialog(item.getName(), mSelectedDeviceAddress);
             }
         });
     }
@@ -117,6 +128,7 @@ public class ConnectActivity extends AppCompatActivity {
         Log.d("onResume", "Called");
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiDirectService.WIFI_DIRECT_PEERS_CHANGED);
+        mIntentFilter.addAction(WifiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
@@ -124,6 +136,12 @@ public class ConnectActivity extends AppCompatActivity {
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         bindToService(wifiServiceIntent);
         super.onResume();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList(DEVICE_OBJECTS_LIST, mDeviceObjects);
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -139,17 +157,6 @@ public class ConnectActivity extends AppCompatActivity {
             case R.id.action_update:
                 Toast.makeText(ConnectActivity.this, R.string.text_updating, Toast.LENGTH_SHORT).show();
                 // TODO - Should this do anything usefull??
-                // Moved to wifi service
-                /*mWifiManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d("Discover peers:", "succes");
-                    }
-                    @Override
-                    public void onFailure(int reasonCode) {
-                        Log.d("Discover peers", "failure");
-                    }
-                });*/
         }
         return super.onOptionsItemSelected(item);
     }
@@ -184,7 +191,6 @@ public class ConnectActivity extends AppCompatActivity {
         }
     }
 
-    // TODO Broadcast reciever
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -192,13 +198,78 @@ public class ConnectActivity extends AppCompatActivity {
             Log.d("Broadcast Receiver:", "Broadcast received from WifiDirectService");
             if(WifiDirectService.WIFI_DIRECT_PEERS_CHANGED.equals(action)) {
                 Log.d("BroadcastReceiver:", "Peers changed");
-                // TODO - Handle changed peers
                 if (mWifiManager != null) {
                     mWifiManager.requestPeers(mChannel, mPeerListListener);
                 }
                 Toast.makeText(ConnectActivity.this, "Peers Changed", Toast.LENGTH_SHORT).show();
             }
+            else if(WifiDirectService.WIFI_DIRECT_CONNECTION_CHANGED.equals(action)) {
+                Log.d("BroadcastReceiver", "WIFI_DIRECTION_CONN_CHANGED");
+                if(intent.getBooleanExtra(WifiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false)) {
+                    Log.d("BroadcastReceiver", "Connection True");
+                    mConnected = true;
+                    Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
+                    startActivity(startControlActivity);
+                }
+                else {
+                    mConnected = false;
+                }
+                // On Succes:
+                // mConnected = true
+                // connect to controlActivity
+
+                // On Failure:
+                // mConnected = false
+            }
         }
     };
+
+    protected void showConnectProgressSpinner(int msTimeOut) {
+        mProgress = (ProgressBar)findViewById(R.id.progressBar);
+        mProgress.setIndeterminate(true);
+        mProgress.setVisibility(View.VISIBLE);
+        //lstViewDevices.setFocusable(false);
+        //lstViewDevices.setClickable(false);
+        lstViewDevices.setVisibility(View.INVISIBLE);
+        new CountDownTimer(msTimeOut, msTimeOut) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                //Nothing
+            }
+
+            @Override
+            public void onFinish() {
+                Log.d("CountDownTimer", "onFinish");
+                mProgress.setVisibility(View.INVISIBLE);
+                lstViewDevices.setVisibility(View.VISIBLE);
+                if(!mConnected) {
+                    Toast.makeText(ConnectActivity.this, "Connection failed", Toast.LENGTH_SHORT).show();
+                    mService.disconnectFromDevice();
+                }
+                else {
+                    // Something maybe
+                }
+                //lstViewDevices.setFocusable(true);
+                //lstViewDevices.setClickable(false);
+            }
+        }.start();
+    }
+
+    protected void showConnectDialog(String name, String address) {
+        ConnectDialogFragment dialog = new ConnectDialogFragment();
+        Bundle args = new Bundle();
+        args.putString(DEVICE_NAME, name);
+        args.putString(DEVICE_ADDRESS, address);
+        dialog.setArguments(args);
+        dialog.show(getFragmentManager(), "dialog");
+    }
+
+    // onClick listener implemented for ConnectDialogFragment
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        mService.connectToDevice(mSelectedDeviceAddress, port);
+        showConnectProgressSpinner(mTimeout_ms);
+    }
+
 }
 
