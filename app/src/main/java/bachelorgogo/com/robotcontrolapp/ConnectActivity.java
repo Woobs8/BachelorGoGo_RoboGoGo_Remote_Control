@@ -63,7 +63,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
     //
     private String mSelectedDeviceAddress;
-    private final int port = 9000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -265,7 +264,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     // onClick listener implemented for ConnectDialogFragment
     @Override
     public void onDialogPositiveClick(DialogFragment dialog) {
-        mService.connectToDevice(mSelectedDeviceAddress, port);
+        mService.connectToDevice(mSelectedDeviceAddress);
         showConnectProgressSpinner(mTimeout_ms);
     }
 
