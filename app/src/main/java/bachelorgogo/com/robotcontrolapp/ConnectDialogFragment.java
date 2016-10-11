@@ -1,8 +1,13 @@
 package bachelorgogo.com.robotcontrolapp;
 
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
+//import android.app.AlertDialog;
+//import android.app.Dialog;
+//import android.app.DialogFragment;
+
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatDialog;
+import android.support.v7.app.AppCompatDialogFragment;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -16,7 +21,7 @@ import android.widget.TextView;
  * Created by MadsNKjaersgaard on 06-10-2016.
  */
 
-public class ConnectDialogFragment extends DialogFragment {
+public class ConnectDialogFragment extends AppCompatDialogFragment {
 
     private String mdeviceName = "test";
     private String mdeviceAddress;
@@ -30,7 +35,7 @@ public class ConnectDialogFragment extends DialogFragment {
     }
 
     public interface ConnectDialogListener {
-        public void onDialogPositiveClick(DialogFragment dialog);
+        public void onDialogPositiveClick(AppCompatDialogFragment dialog);
     }
 
     // Use this instance of the dialog interface to deliver action events to activity
@@ -51,7 +56,7 @@ public class ConnectDialogFragment extends DialogFragment {
     }
 
     @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
+    public AppCompatDialog onCreateDialog(Bundle savedInstanceState) {
         Bundle arguments = getArguments();
         if(arguments != null) {
             setDeviceName(arguments.getString(ConnectActivity.DEVICE_NAME));

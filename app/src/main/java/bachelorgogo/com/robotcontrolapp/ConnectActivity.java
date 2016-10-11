@@ -1,6 +1,7 @@
 package bachelorgogo.com.robotcontrolapp;
 
-import android.app.DialogFragment;
+//import android.app.DialogFragment;
+import android.support.v7.app.AppCompatDialogFragment;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -292,12 +293,12 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         args.putString(DEVICE_NAME, name);
         args.putString(DEVICE_ADDRESS, address);
         dialog.setArguments(args);
-        dialog.show(getFragmentManager(), "dialog");
+        dialog.show(getSupportFragmentManager(), "dialog");
     }
 
     // onClick listener implemented for ConnectDialogFragment
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
+    public void onDialogPositiveClick(AppCompatDialogFragment dialog) {
         mService.connectToDevice(mSelectedDeviceAddress);
         showConnectProgressSpinner(mTimeout_ms);
     }
