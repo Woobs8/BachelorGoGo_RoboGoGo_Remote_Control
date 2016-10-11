@@ -143,7 +143,7 @@ public class WiFiDirectService extends Service {
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "Service bound");
         if (intent != null) {
-            boolean discoverPeers = intent.getBooleanExtra("key",false);
+            boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
             if (discoverPeers) {
                 mDiscoverPeersListeners++;
                 if (!mCurrentlyDiscoveringPeers) {
@@ -161,7 +161,7 @@ public class WiFiDirectService extends Service {
         Log.d(TAG, "Service unbound");
         unregisterReceiver(mReceiver);
         if (intent != null) {
-            boolean discoverPeers = intent.getBooleanExtra("key",false);
+            boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
             if (discoverPeers)
                 mDiscoverPeersListeners--;
             //If no more listeners - stop discovering services

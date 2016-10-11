@@ -59,7 +59,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     DeviceObjectAdapter mDeviceObjectAdapter;
 
     // constans
-    final static int mTimeout_ms = 3000;
+    final static int mTimeout_ms = 10000;
 
     //
     private String mSelectedDeviceAddress;
@@ -71,7 +71,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         setContentView(R.layout.activity_connect);
 
         //initialize WifiManager
-        mWifiManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
+        /*mWifiManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mWifiManager.initialize(this, getMainLooper(), null);
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
@@ -83,7 +83,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                     mDeviceObjectAdapter.add(new DeviceObject(item.deviceName, item.deviceAddress));
                 }
             }
-        };
+        };*/
 
         myToolbar = (Toolbar)findViewById(R.id.toolbarConnActivity);
         setSupportActionBar(myToolbar);
@@ -124,8 +124,9 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     protected void onResume() {
         Log.d("onResume", "Called");
         mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED);
+        //mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED);
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
@@ -187,7 +188,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             unbindService(mConnection);
         }
     }
-
+/*
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -219,7 +220,40 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 // mConnected = false
             }
         }
+    };*/
+
+    // Broadcast handler for received Intents.
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null) {
+                boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                switch (intent.getAction()) {
+                    case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
+                        Log.d("Receiver",Boolean.toString(status));
+                        if(status) {
+                            mConnected = true;
+                            Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
+                            startActivity(startControlActivity);
+                        }
+                        else {
+                            mConnected = false;
+                        }
+                        break;
+                    case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
+                        String deviceName = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_NAME_KEY);
+                        String deviceAddress = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_ADDRESS_KEY);
+                        if(deviceName != null && deviceAddress != null) {
+                            UpdateDeviceList(deviceName, deviceAddress);
+                        }
+                }
+            }
+        }
     };
+
+    private void UpdateDeviceList(String deviceName, String deviceAddress) {
+        mDeviceObjectAdapter.add(new DeviceObject(deviceName, deviceAddress));
+    }
 
     protected void showConnectProgressSpinner(int msTimeOut) {
         mProgress = (ProgressBar)findViewById(R.id.progressBar);
