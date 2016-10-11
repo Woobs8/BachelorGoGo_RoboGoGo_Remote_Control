@@ -7,10 +7,7 @@ import android.util.Log;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-
-/**
- * Created by THP on 04-10-2016.
- */
+import java.nio.ByteBuffer;
 
 public class ControlClient {
     static final String TAG = "ControlClient";
@@ -36,12 +33,22 @@ public class ControlClient {
             {
                 try
                 {
-                    Log.d(TAG,"Sending command: " + mCommand);
-                    mDatagramSocket = new DatagramSocket();
-                    int msg_length = mCommand.length();
-                    byte[] message = mCommand.getBytes();
-                    DatagramPacket dp = new DatagramPacket(message, msg_length, mHostAddress, mPort);
-                    mDatagramSocket.send(dp);
+                    if(mCommand.length() <= (2^32-1)) {
+                        mDatagramSocket = new DatagramSocket();
+
+                        //First send packet size...
+                        ByteBuffer dbuf = ByteBuffer.allocate(4);   //max packet size = 2^32
+                        dbuf.putInt(mCommand.length());
+                        byte[] size = dbuf.array();
+                        DatagramPacket sizePacket = new DatagramPacket(size, size.length, mHostAddress, mPort);
+                        mDatagramSocket.send(sizePacket);
+
+                        //Then the actual packet
+                        Log.d(TAG, "Sending command: " + mCommand);
+                        byte[] message = mCommand.getBytes();
+                        DatagramPacket dp = new DatagramPacket(message, message.length, mHostAddress, mPort);
+                        mDatagramSocket.send(dp);
+                    }
                 }
                 catch (Exception e)
                 {
