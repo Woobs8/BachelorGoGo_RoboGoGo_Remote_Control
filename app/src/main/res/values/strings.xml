@@ -15,4 +15,30 @@
 
     <string name="action_settings">Settings</string>
     <string name="title_activity_control">ControlActivity</string>
+
+    <string name="HelpText">
+        This App will enable the user to control a Robot through WiFi-Direct.
+        Furthermore the user will be able to recieve a camera stream on the Android device
+        while controlling the robot. Finally the the user will be able to set specific settings
+        on the Robot through the App.
+        \n
+        \n
+        Using the Drawer Menu by swiping in from the right side of the phone or psuhing the menu button,
+        the user will be shown the choices to enter: \n\n
+        1) Information \n
+        In this menu the user will be shown information regarding the Robot such as - Firmware version,
+        Camera Storage, Battery, etc.\n\n
+        2) Settings \n
+        In this menu the user will be able to change specific settings on the robot and in the App.
+        Settings could be changing - The Robot name, Video Quality, Driving modes, etc. \n\n
+        3) Help \n
+        You are currently reading this menu, which intents to inform you about the functionality of the App.\n\n
+        4) Disconnect \n
+        This Button ensures that the Android device and the Robot will be disconnected and the Android device
+        WiFi-Direct module will be closed. The App will return to the Welcome/Connection menu to allow the user
+        to connect to the same or a new Robot.\n\n
+
+        If unexpected and undocumented troubles are experienced through useing the App and the Robot
+        please Contact the support to inform of the problems and hopefully we can help you.
+    </string>
 </resources>
