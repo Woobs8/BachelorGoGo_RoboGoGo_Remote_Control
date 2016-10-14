@@ -4,7 +4,7 @@
     android:layout_height="wrap_content" >
 
     <TextView
-        android:text="@string/text_device_name"
+        android:text="@string/text_ip_address"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
@@ -13,80 +13,80 @@
         android:layout_marginLeft="15dp"
         android:layout_marginStart="15dp"
         android:layout_marginTop="5dp"
-        android:id="@+id/tvDeviceName"
+        android:id="@+id/tvMac"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvDeviceNameHere"
+        android:id="@+id/tvDeviceMacHere"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:text="text"
-        android:layout_below="@+id/tvDeviceName"
-        android:layout_alignLeft="@+id/tvDeviceName"
-        android:layout_alignStart="@+id/tvDeviceName" />
+        android:layout_below="@+id/tvMac"
+        android:layout_alignLeft="@+id/tvMac"
+        android:layout_alignStart="@+id/tvMac" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvCameraYesNo"
+        android:id="@+id/tvCameraAvailable"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:layout_marginTop="2dp"
+        android:layout_below="@+id/tvDeviceStorageRemainingHere"
+        android:layout_alignLeft="@+id/tvDeviceMacHere"
+        android:layout_alignStart="@+id/tvDeviceMacHere"
+        android:text="@string/text_camera_available" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tvDeviceCameraAvailableHere"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:text="text"
         android:layout_below="@+id/tvCameraAvailable"
-        android:layout_alignLeft="@+id/tvDeviceName"
-        android:layout_alignStart="@+id/tvDeviceName" />
+        android:layout_alignLeft="@+id/tvMac"
+        android:layout_alignStart="@+id/tvMac" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvStorage"
+        android:id="@+id/tvStorageSpace"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:layout_marginTop="2dp"
-        android:layout_below="@+id/tvCameraYesNo"
-        android:layout_alignLeft="@+id/tvDeviceNameHere"
-        android:layout_alignStart="@+id/tvDeviceNameHere"
-        android:text="@string/text_storage" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/tvStorageHere"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:text="text"
-        android:layout_below="@+id/tvStorage"
-        android:layout_alignLeft="@+id/tvDeviceName"
-        android:layout_alignStart="@+id/tvDeviceName" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/tvAddress"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:layout_marginTop="2dp"
-        android:layout_below="@+id/tvDeviceNameHere"
-        android:layout_alignLeft="@+id/tvDeviceNameHere"
-        android:layout_alignStart="@+id/tvDeviceNameHere"
-        android:text="@string/text_ip_address" />
+        android:layout_below="@+id/tvDeviceMacHere"
+        android:layout_alignLeft="@+id/tvDeviceMacHere"
+        android:layout_alignStart="@+id/tvDeviceMacHere"
+        android:text="@string/text_storage_space" />
 
     <TextView
         android:text="text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvIpAddressHere"
+        android:id="@+id/tvDeviceStorageSpaceHere"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:layout_below="@+id/tvAddress"
-        android:layout_alignLeft="@+id/tvAddress"
-        android:layout_alignStart="@+id/tvAddress" />
+        android:layout_below="@+id/tvStorageSpace"
+        android:layout_alignLeft="@+id/tvStorageSpace"
+        android:layout_alignStart="@+id/tvStorageSpace" />
 
     <TextView
-        android:text="@string/text_camera_available"
+        android:text="@string/text_storage_remaining"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:id="@+id/tvCameraAvailable"
+        android:id="@+id/tvStorageRemaining"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:layout_below="@+id/tvIpAddressHere"
-        android:layout_alignLeft="@+id/tvIpAddressHere"
-        android:layout_alignStart="@+id/tvIpAddressHere" />
+        android:layout_below="@+id/tvDeviceStorageSpaceHere"
+        android:layout_alignLeft="@+id/tvDeviceStorageSpaceHere"
+        android:layout_alignStart="@+id/tvDeviceStorageSpaceHere" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tvDeviceStorageRemainingHere"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:text="text"
+        android:layout_below="@+id/tvStorageRemaining"
+        android:layout_alignLeft="@+id/tvStorageRemaining"
+        android:layout_alignStart="@+id/tvStorageRemaining" />
 
 </RelativeLayout>

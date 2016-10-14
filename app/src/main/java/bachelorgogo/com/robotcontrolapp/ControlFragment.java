@@ -35,9 +35,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     private Context mContext;
     boolean DEVELOPING = false;
 
-    // Communication Parameters
-    public final static String BROADCAST_STATUS = "Broadcast Status";
-
     // Layout Paramters
     private RelativeLayout mLayout;
 
@@ -79,12 +76,13 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     TextView BatteryPct;
 
 
-    // Communication paramters
-    IntentFilter mIntentFilter;
-    WiFiDirectService mService;
-    boolean mBound;
-    boolean mConnected = false;
-
+    // Communication Parameters
+    public final static String BROADCAST_STATUS = "Broadcast Status";
+    private IntentFilter mIntentFilter;
+    private WiFiDirectService mService;
+    private boolean mBound;
+    private boolean mConnected = false;
+    private StatusMessage mStatus = new StatusMessage("Default");
 
 
     @Override
@@ -170,8 +168,8 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             if (intent != null) {
                 switch (intent.getAction()) {
                     case WiFiDirectService.ROBOT_STATUS_RECEIVED:
-                        StatusMessage status = new StatusMessage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
-                        mProgressBar.setProgress(status.getBatteryPercentage());
+                        mStatus = new StatusMessage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
+                        mProgressBar.setProgress(mStatus.getBatteryPercentage());
                 }
             }
         }
@@ -370,6 +368,14 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             mBound = false;
             mContext.unbindService(mConnection);
         }
+    }
+
+    protected WiFiDirectService getService() {
+        return mService;
+    }
+
+    protected StatusMessage getStatus() {
+        return mStatus;
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {

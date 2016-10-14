@@ -3,17 +3,13 @@ package bachelorgogo.com.robotcontrolapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageButton;
@@ -23,10 +19,10 @@ public class ControlActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     // Fragment argument keys
-    public final static String DEVICE_NAME_STRING = "deviceName";
-    public final static String DEVICE_ADDRESS_STRING = "deviceAddress";
+    public final static String DEVICE_MAC_STRING = "deviceMac";
+    public final static String DEVICE_STORAGE_REMAINING_STRING = "deviceStorageRemaining";
     public final static String DEVICE_CAMERA_BOOL = "deviceCameraInfo";
-    public final static String DEVICE_STORAGE_STRING = "deviceStorage";
+    public final static String DEVICE_STORAGE_SPACE_STRING = "deviceStorageSpace";
 
     ImageButton mMenuBtn;
     boolean BACK_PRESSED_ONCE = false;
@@ -67,7 +63,8 @@ public class ControlActivity extends AppCompatActivity
         // thus single click back is being disabled to ensure no false back press.
 
         if (BACK_PRESSED_ONCE) {
-            // TODO - mService.disconnectFromDevice()
+            WiFiDirectService wiFiDirectService = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getService();
+            wiFiDirectService.disconnectFromDevice();
             super.onBackPressed();
             // Maybe back to connected screen instead super should implement this when connect activity is main.
             // for development reasons contrl/
@@ -115,8 +112,8 @@ public class ControlActivity extends AppCompatActivity
         }
         else if (id == R.id.nav_information) {
             //Toast.makeText(this, "Information Clicked", Toast.LENGTH_SHORT).show();
-            // TODO - put real data into dialog
-            showDeviceInfoDialog("SUCH name", "Wow address", "Much Storage", false);
+            StatusMessage setStatus = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getStatus();
+            showDeviceInfoDialog(setStatus.getMac(), setStatus.getStorageSpace(), setStatus.getStorageRemaining(), setStatus.getCameraAvailable());
         }
         else if (id == R.id.nav_settings) {
             //Toast.makeText(this, "SettingsClicked", Toast.LENGTH_SHORT).show();
@@ -128,7 +125,8 @@ public class ControlActivity extends AppCompatActivity
             startActivity(startControlActivity);
         }
         else if (id == R.id.nav_disconnect) {
-            // TODO - mService.disconnectFromDevice()
+            WiFiDirectService wiFiDirectService = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getService();
+            wiFiDirectService.disconnectFromDevice();
             finish();
         }
 
@@ -137,12 +135,12 @@ public class ControlActivity extends AppCompatActivity
         return true;
     }
 
-    protected void showDeviceInfoDialog(String name, String address, String storageSpace, boolean hasCamera) {
+    protected void showDeviceInfoDialog(String Mac, String storageSpace, String StorageRemaining, boolean hasCamera) {
         DeviceInfoDialogFragment dialog = new DeviceInfoDialogFragment();
         Bundle args = new Bundle();
-        args.putString(DEVICE_NAME_STRING, name);
-        args.putString(DEVICE_ADDRESS_STRING, address);
-        args.putString(DEVICE_STORAGE_STRING, storageSpace);
+        args.putString(DEVICE_MAC_STRING, Mac);
+        args.putString(DEVICE_STORAGE_SPACE_STRING, storageSpace);
+        args.putString(DEVICE_STORAGE_REMAINING_STRING, StorageRemaining);
         args.putBoolean(DEVICE_CAMERA_BOOL, hasCamera);
         dialog.setArguments(args);
         dialog.show(getSupportFragmentManager(), "InfoDialog");

@@ -49,6 +49,7 @@
         please Contact the support to inform of the problems and hopefully we can help you.
     </string>
     <string name="text_camera_available">Camera Available:</string>
-    <string name="text_storage">Storage:</string>
+    <string name="text_storage_space">Storage space:</string>
+    <string name="text_storage_remaining">Storage remaining:</string>
     <string name="text_button_to_control">Go to ControlActivity</string>
 </resources>

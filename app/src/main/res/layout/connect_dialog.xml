@@ -14,37 +14,37 @@
         android:layout_marginLeft="15dp"
         android:layout_marginStart="15dp"
         android:layout_marginTop="15dp"
-        android:id="@+id/tvDeviceName"
+        android:id="@+id/tvMac"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvDeviceNameHere"
+        android:id="@+id/tvDeviceMacHere"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:text="text"
-        android:layout_below="@+id/tvDeviceName"
-        android:layout_alignLeft="@+id/tvDeviceName"
-        android:layout_alignStart="@+id/tvDeviceName" />
+        android:layout_below="@+id/tvMac"
+        android:layout_alignLeft="@+id/tvMac"
+        android:layout_alignStart="@+id/tvMac" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvAddress"
+        android:id="@+id/tvStorageSpace"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:layout_marginTop="10dp"
-        android:layout_below="@+id/tvDeviceNameHere"
-        android:layout_alignLeft="@+id/tvDeviceNameHere"
-        android:layout_alignStart="@+id/tvDeviceNameHere"
+        android:layout_below="@+id/tvDeviceMacHere"
+        android:layout_alignLeft="@+id/tvDeviceMacHere"
+        android:layout_alignStart="@+id/tvDeviceMacHere"
         android:text="@string/text_ip_address" />
 
     <TextView
         android:text="text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/tvIpAddressHere"
+        android:id="@+id/tvDeviceStorageSpaceHere"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:layout_below="@+id/tvAddress"
-        android:layout_alignLeft="@+id/tvAddress"
-        android:layout_alignStart="@+id/tvAddress" />
+        android:layout_below="@+id/tvStorageSpace"
+        android:layout_alignLeft="@+id/tvStorageSpace"
+        android:layout_alignStart="@+id/tvStorageSpace" />
 </RelativeLayout>

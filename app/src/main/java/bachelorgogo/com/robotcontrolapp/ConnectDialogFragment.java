@@ -68,8 +68,8 @@ public class ConnectDialogFragment extends AppCompatDialogFragment {
         // Pass null as the parent view because its going in the dialog layout
         View content = inflater.inflate(R.layout.connect_dialog, null);
         builder.setView(content);
-        TextView tvDeviceName = (TextView)content.findViewById(R.id.tvDeviceNameHere);
-        TextView tvDeviceAddress = (TextView)content.findViewById(R.id.tvIpAddressHere);
+        TextView tvDeviceName = (TextView)content.findViewById(R.id.tvDeviceMacHere);
+        TextView tvDeviceAddress = (TextView)content.findViewById(R.id.tvDeviceStorageSpaceHere);
         tvDeviceName.setText(mdeviceName);
         tvDeviceAddress.setText(mdeviceAddress);
         // Add title
