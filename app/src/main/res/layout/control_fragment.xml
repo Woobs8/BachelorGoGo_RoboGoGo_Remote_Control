@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_control"
     android:layout_width="match_parent"
@@ -105,5 +106,27 @@
         android:layout_alignBottom="@+id/CameraStreamSwitch"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="9dp"/>
+
+    <ImageView
+        android:layout_width="4mm"
+        android:layout_height="4mm"
+        android:src="@drawable/ic_wheel_icon"
+        android:id="@+id/imgWheel"
+        android:layout_alignBottom="@+id/progressBar"
+        android:layout_toRightOf="@+id/camera_circle"
+        android:layout_toEndOf="@+id/camera_circle"
+        android:layout_marginLeft="57dp"
+        android:layout_marginStart="57dp" />
+
+    <ImageView
+        android:layout_width="4mm"
+        android:layout_height="4mm"
+        android:src="@drawable/ic_batterysaving_icon"
+        android:id="@+id/imgBatterySaver"
+        android:layout_alignTop="@+id/imgWheel"
+        android:layout_toRightOf="@+id/camera_circle"
+        android:layout_toEndOf="@+id/camera_circle"
+        android:layout_marginLeft="13dp"
+        android:layout_marginStart="13dp" />
 
 </RelativeLayout>

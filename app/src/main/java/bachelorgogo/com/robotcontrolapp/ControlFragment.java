@@ -6,12 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -88,6 +91,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
     {
+        Log.d(TAG, "onCreateView");
         super.onCreate(savedInstanceState);
 
         // Inflate/Get the Layout
@@ -114,11 +118,15 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         ////////////////////////////////
         StreamSwitchSetup();
 
+        settingsIconsSetup();
+
         return mLayout;
     }
 
     @Override
     public void onStart() {
+        Log.d(TAG, "onStart");
+        settingsIconsSetup();
         super.onStart();
     }
 
@@ -336,6 +344,28 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         });
     }
 
+    private void settingsIconsSetup() {
+        SharedPreferences mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        ImageView imgSaveMode = (ImageView)mLayout.findViewById(R.id.imgBatterySaver);
+        ImageView imgDriveAssist = (ImageView)mLayout.findViewById(R.id.imgWheel);
+        if(mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false)) {
+            imgSaveMode.setVisibility(View.VISIBLE);
+            Log.d(TAG, "VISIBLE");
+        } else {
+
+            imgSaveMode.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "INVISIBLE");
+        }
+
+        if(mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false)) {
+            imgDriveAssist.setVisibility(View.VISIBLE);
+            Log.d(TAG, "VISIBLE");
+        } else {
+            imgDriveAssist.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "INVISIBLE");
+        }
+    }
+
     MediaPlayer.OnPreparedListener PreparedListener = new MediaPlayer.OnPreparedListener(){
         // Mute sound found on stackoverlow
         // http://stackoverflow.com/questions/11021503/muting-one-audio-and-playing-other-audio-in-its-place-videoview
@@ -387,11 +417,13 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            mService.addListener(false, true);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+            mService.removeListener(false, true);
         }
     };
 }
