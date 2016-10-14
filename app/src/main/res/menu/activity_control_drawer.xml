@@ -5,15 +5,19 @@
         <item
             android:id="@+id/nav_information"
             android:icon="@drawable/ic_menu_information"
-            android:title="Device Information" />
+            android:title="@string/text_device_info" />
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_menu_manage"
-            android:title="Setting" />
+            android:title="@string/text_settings" />
         <item
             android:id="@+id/nav_help"
             android:icon="@drawable/ic_menu_help"
-            android:title="Help" />
+            android:title="@string/text_help" />
+        <item
+            android:id="@+id/nav_disconnect"
+            android:icon="@drawable/ic_menu_disconnect"
+            android:title="@string/text_disconnect" />
     </group>
 
 </menu>

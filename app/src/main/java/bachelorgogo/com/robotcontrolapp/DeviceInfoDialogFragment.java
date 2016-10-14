@@ -49,10 +49,10 @@ public class DeviceInfoDialogFragment extends AppCompatDialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Bundle arguments = getArguments();
         if(arguments != null) {
-            setmDeviceName(arguments.getString(ControlFragment.DEVICE_NAME_STRING));
-            setmDeviceAddress(arguments.getString(ControlFragment.DEVICE_ADDRESS_STRING));
-            setmDeviceStorageSpace(arguments.getString(ControlFragment.DEVICE_STORAGE_STRING));
-            setmDeviceCameraAvailable(arguments.getBoolean(ControlFragment.DEVICE_CAMERA_BOOL));
+            setmDeviceName(arguments.getString(ControlActivity.DEVICE_NAME_STRING));
+            setmDeviceAddress(arguments.getString(ControlActivity.DEVICE_ADDRESS_STRING));
+            setmDeviceStorageSpace(arguments.getString(ControlActivity.DEVICE_STORAGE_STRING));
+            setmDeviceCameraAvailable(arguments.getBoolean(ControlActivity.DEVICE_CAMERA_BOOL));
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();

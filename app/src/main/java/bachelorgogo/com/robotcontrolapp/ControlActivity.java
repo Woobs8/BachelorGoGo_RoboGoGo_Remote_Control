@@ -67,6 +67,7 @@ public class ControlActivity extends AppCompatActivity
         // thus single click back is being disabled to ensure no false back press.
 
         if (BACK_PRESSED_ONCE) {
+            // TODO - mService.disconnectFromDevice()
             super.onBackPressed();
             // Maybe back to connected screen instead super should implement this when connect activity is main.
             // for development reasons contrl/
@@ -113,14 +114,22 @@ public class ControlActivity extends AppCompatActivity
 
         }
         else if (id == R.id.nav_information) {
-            Toast.makeText(this, "Information Clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "Information Clicked", Toast.LENGTH_SHORT).show();
+            // TODO - put real data into dialog
+            showDeviceInfoDialog("SUCH name", "Wow address", "Much Storage", false);
         }
         else if (id == R.id.nav_settings) {
-            Toast.makeText(this, "SettingsClicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "SettingsClicked", Toast.LENGTH_SHORT).show();
+            Intent settingsIntent = new Intent(ControlActivity.this, SettingsActivity.class);
+            startActivity(settingsIntent);
         }
         else if (id == R.id.nav_help) {
             Intent startControlActivity = new Intent(ControlActivity.this, HelpActivity.class);
             startActivity(startControlActivity);
+        }
+        else if (id == R.id.nav_disconnect) {
+            // TODO - mService.disconnectFromDevice()
+            finish();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

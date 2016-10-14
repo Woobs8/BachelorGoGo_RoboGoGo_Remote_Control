@@ -34,11 +34,11 @@
 
     <ListView
         android:layout_width="match_parent"
-        android:layout_height="188dp"
         android:id="@+id/lstViewAvailRobots"
         android:layout_below="@+id/tvPleaseConnect"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_height="120dp" />
 
     <ProgressBar
         style="@style/Widget.AppCompat.ProgressBar"
@@ -47,6 +47,14 @@
         android:id="@+id/progressBar"
         android:visibility="invisible"
         android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/button"
+        android:text="@string/text_button_to_control"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
 
 </RelativeLayout>
