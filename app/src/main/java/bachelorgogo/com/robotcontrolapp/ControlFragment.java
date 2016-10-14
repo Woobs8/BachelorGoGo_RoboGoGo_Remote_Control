@@ -411,11 +411,13 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            mService.addListener(false, true);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+            mService.removeListener(false, true);
         }
     };
 }
