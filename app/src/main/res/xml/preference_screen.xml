@@ -38,7 +38,7 @@
 
     <Preference android:title="@string/settings_upload_btn_title"
         android:key="@string/settings_upload_btn_key"
-        android:summary="Upload the current settings to the robot. Unsynced changes will be lost."/>
+        android:summary="Upload the current settings to the robot"/>
 
     <PreferenceCategory
         android:title="@string/settings_local_category">
