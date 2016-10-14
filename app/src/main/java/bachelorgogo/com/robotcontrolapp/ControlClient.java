@@ -16,6 +16,7 @@ public class ControlClient {
     private String mCommand;
     private DatagramSocket mDatagramSocket;
     private AsyncTask<Void, Void, Void> async_client;
+    private boolean FAILURE = false;
 
     ControlClient(InetAddress host, int port) {
         mHostAddress = host;
@@ -23,9 +24,10 @@ public class ControlClient {
         mDatagramSocket = null;
     }
 
-    public void sendCommand(String command)
+    public void sendCommand(final CommandObject command)
     {
-        mCommand = command;
+        mCommand = command.getDataCommandString();
+
         async_client = new AsyncTask<Void, Void, Void>()
         {
             @Override
@@ -48,21 +50,35 @@ public class ControlClient {
                         byte[] message = mCommand.getBytes();
                         DatagramPacket dp = new DatagramPacket(message, message.length, mHostAddress, mPort);
                         mDatagramSocket.send(dp);
+                        FAILURE = false;
                     }
                 }
                 catch (Exception e)
                 {
                     Log.d(TAG,"Error sending command");
                     e.printStackTrace();
+                    FAILURE = true;
+
                 }
                 finally
                 {
+                    publishProgress();
                     if (mDatagramSocket != null)
                     {
                         mDatagramSocket.close();
                     }
                 }
                 return null;
+            }
+
+            @Override
+            protected void onProgressUpdate(Void... values) {
+                if(FAILURE)
+                    command.onFailure(mCommand);
+                else
+                    command.onSuccess(mCommand);
+
+                super.onProgressUpdate(values);
             }
 
             protected void onPostExecute(Void result)

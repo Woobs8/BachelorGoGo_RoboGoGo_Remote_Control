@@ -124,6 +124,14 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     }
 
     @Override
+    protected void onDestroy() {
+
+        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
+        stopService(wifiServiceIntent);
+        super.onDestroy();
+    }
+
+    @Override
     protected void onResume() {
         Log.d("onResume", "Called");
         mIntentFilter = new IntentFilter();
