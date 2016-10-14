@@ -163,6 +163,7 @@ public class WiFiDirectService extends Service {
 
     public void addListener(boolean broadcastPeers, boolean broadcastStatus) {
         if(broadcastPeers) {
+            Log.d(TAG,"Adding peer discovery listener");
             mDiscoverPeersListeners++;
             if (!mCurrentlyDiscoveringPeers) {
                 discoverPeers();
@@ -171,6 +172,7 @@ public class WiFiDirectService extends Service {
         }
 
         if(broadcastStatus) {
+            Log.d(TAG,"Adding status listener");
             mBroadcastStatusListeners++;
             if (!mCurrentlyBroadcastingStatus) {
                 mStatusClient.start();

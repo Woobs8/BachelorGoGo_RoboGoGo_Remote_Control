@@ -188,11 +188,15 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            //Add peer discovery listener
+            mService.addListener(true,false);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+            //Remove peer discovery listener
+            mService.removeListener(true,false);
         }
     };
 
