@@ -212,7 +212,7 @@ public class WiFiDirectService extends Service {
         mCommandClient = null;
     }
 
-    public void sendControlCommand(String command) {
+    public void sendCommandObject(CommandObject command) {
         if (mCommandClient != null) {
             mCommandClient.sendCommand(command);
         }
