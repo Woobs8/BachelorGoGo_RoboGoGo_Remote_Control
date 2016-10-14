@@ -12,8 +12,6 @@ import android.widget.RelativeLayout;
 
 public class HelpActivity extends AppCompatActivity {
 
-    RelativeLayout mLayout;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
