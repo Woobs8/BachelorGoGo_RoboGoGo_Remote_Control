@@ -21,6 +21,13 @@ import android.widget.Toast;
 
 public class ControlActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+
+    // Fragment argument keys
+    public final static String DEVICE_NAME_STRING = "deviceName";
+    public final static String DEVICE_ADDRESS_STRING = "deviceAddress";
+    public final static String DEVICE_CAMERA_BOOL = "deviceCameraInfo";
+    public final static String DEVICE_STORAGE_STRING = "deviceStorage";
+
     ImageButton mMenuBtn;
     boolean BACK_PRESSED_ONCE = false;
 
@@ -124,10 +131,10 @@ public class ControlActivity extends AppCompatActivity
     protected void showDeviceInfoDialog(String name, String address, String storageSpace, boolean hasCamera) {
         DeviceInfoDialogFragment dialog = new DeviceInfoDialogFragment();
         Bundle args = new Bundle();
-        args.putString(ControlFragment.DEVICE_NAME_STRING, name);
-        args.putString(ControlFragment.DEVICE_ADDRESS_STRING, address);
-        args.putString(ControlFragment.DEVICE_STORAGE_STRING, storageSpace);
-        args.putBoolean(ControlFragment.DEVICE_CAMERA_BOOL, hasCamera);
+        args.putString(DEVICE_NAME_STRING, name);
+        args.putString(DEVICE_ADDRESS_STRING, address);
+        args.putString(DEVICE_STORAGE_STRING, storageSpace);
+        args.putBoolean(DEVICE_CAMERA_BOOL, hasCamera);
         dialog.setArguments(args);
         dialog.show(getSupportFragmentManager(), "InfoDialog");
     }

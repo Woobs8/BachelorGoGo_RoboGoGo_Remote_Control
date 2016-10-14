@@ -23,6 +23,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -71,6 +72,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         Log.d("onCreate:", "called");
         setContentView(R.layout.activity_connect);
 
+
         //initialize WifiManager
         /*mWifiManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mWifiManager.initialize(this, getMainLooper(), null);
@@ -86,8 +88,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             }
         };*/
 
-        myToolbar = (Toolbar)findViewById(R.id.toolbarConnActivity);
-        setSupportActionBar(myToolbar);
+        //myToolbar = (Toolbar)findViewById(R.id.toolbarConnActivity);
+        //setSupportActionBar(myToolbar);
 
         //Start Wifi Service
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
