@@ -1,4 +1,5 @@
 <resources>
+    <string name="robotName">RobotGOGO</string>
     <string name="settings_robot_category">Robot Settings</string>
     <string name="settings_local_category">Local Settings</string>
     <string name="settings_device_name_preference_title">Device Name</string>

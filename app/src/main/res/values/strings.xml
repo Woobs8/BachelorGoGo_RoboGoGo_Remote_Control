@@ -9,6 +9,10 @@
     <string name="text_ip_address">Device MAC Address:</string>
     <string name="text_dialog_title">Connect to Device</string>
     <string name="title_activity_navigation_drawer">NavigationDrawer</string>
+    <string name="text_info_dialog_title">Robot Info</string>
+    <string name="text_ok">Ok</string>
+    <string name="text_yes">Yes</string>
+    <string name="text_no">No</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -41,4 +45,6 @@
         If unexpected and undocumented troubles are experienced through useing the App and the Robot
         please Contact the support to inform of the problems and hopefully we can help you.
     </string>
+    <string name="text_camera_available">Camera Available:</string>
+    <string name="text_storage">Storage:</string>
 </resources>

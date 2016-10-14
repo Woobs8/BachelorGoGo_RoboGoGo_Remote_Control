@@ -120,4 +120,15 @@ public class ControlActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
+    protected void showDeviceInfoDialog(String name, String address, String storageSpace, boolean hasCamera) {
+        DeviceInfoDialogFragment dialog = new DeviceInfoDialogFragment();
+        Bundle args = new Bundle();
+        args.putString(ControlFragment.DEVICE_NAME_STRING, name);
+        args.putString(ControlFragment.DEVICE_ADDRESS_STRING, address);
+        args.putString(ControlFragment.DEVICE_STORAGE_STRING, storageSpace);
+        args.putBoolean(ControlFragment.DEVICE_CAMERA_BOOL, hasCamera);
+        dialog.setArguments(args);
+        dialog.show(getSupportFragmentManager(), "InfoDialog");
+    }
 }
