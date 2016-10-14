@@ -1,0 +1,22 @@
+<resources>
+    <string name="settings_robot_category">Robot Settings</string>
+    <string name="settings_local_category">Local Settings</string>
+    <string name="settings_device_name_preference_title">Device Name</string>
+    <string name="settings_power_save_mode_preference_title">Power Saving Mode</string>
+    <string name="settings_assisted_drive_mode_preference_title">Assisted Driving Mode</string>
+    <string name="settings_video_preference_title">Video Settings</string>
+    <string name="settings_upload_btn_title">Upload</string>
+    <string name="settings_local_picture_storage_preference_title">Save Pictures Locally</string>
+    <string name="settings_local_video_storage_preference_title">Save Video Locally</string>
+    
+    <string name="settings_upload_btn_key">UploadBtn</string>
+    <string name="settings_device_name_key">device_name_preference</string>
+    <string name="settings_power_save_mode_key">power_save_mode_preference</string>
+    <string name="settings_assisted_driving_mode_key">assisted_driving_mode_preference</string>
+    <string name="settings_video_key">video_preference</string>
+    <string name="settings_local_picture_storage_key">local_picture_storage_preference</string>
+    <string name="settings_local_video_storage_key">local_video_storage_preference</string>
+    <string name="settings_synced">Current settings match the settings on the robot</string>
+    <string name="settings_not_synced">Current settings match the settings on the robot</string>
+    <string name="settings_sync_error_toast">Failed to sync settings</string>
+</resources>
