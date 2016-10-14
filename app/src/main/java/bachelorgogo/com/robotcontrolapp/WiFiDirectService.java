@@ -63,6 +63,7 @@ public class WiFiDirectService extends Service {
 
     ControlClient mCommandClient;
     RobotStatusClient mStatusClient;
+    SettingsClient mSettingsClient;
 
     private boolean mWiFiDirectEnabled = false;
     private boolean mConnected = false;
@@ -207,6 +208,7 @@ public class WiFiDirectService extends Service {
         if(broadcastPeers) {
             mDiscoverPeersListeners--;
             if(mDiscoverPeersListeners <= 0) {
+                mDiscoverPeersListeners = 0;
                 stopDiscoveringPeers();
                 mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
                 stopServiceDiscovery();
@@ -217,8 +219,8 @@ public class WiFiDirectService extends Service {
 
         if(broadcastStatus) {
             mBroadcastStatusListeners--;
-            if(mDiscoverPeersListeners <= 0) {
-                mDiscoverPeersListeners = 0;
+            if(mBroadcastStatusListeners <= 0) {
+                mBroadcastStatusListeners = 0;
                 mStatusClient.stop();
             }
         }
@@ -271,6 +273,12 @@ public class WiFiDirectService extends Service {
     public void sendCommandObject(CommandObject command) {
         if (mCommandClient != null) {
             mCommandClient.sendCommand(command);
+        }
+    }
+
+    public void sendSettingsObject(SettingsObject settings) {
+        if(mSettingsClient != null) {
+            mSettingsClient.sendSettings(settings);
         }
     }
 
@@ -473,6 +481,8 @@ public class WiFiDirectService extends Service {
                                                     int hostUDPPort = Integer.valueOf(dataStr);
                                                     if (hostUDPPort > 0 && hostUDPPort < 9999)
                                                         mHostUDPPort = hostUDPPort;
+                                                    else
+                                                        mConnected = false;
                                                     Log.d(TAG, "UDP client resolved to: " + mRobotAddress + " (port " + mHostUDPPort + ")");
 
                                                     //read client TCP port
@@ -480,6 +490,8 @@ public class WiFiDirectService extends Service {
                                                     int hostTCPPort = Integer.valueOf(dataStr);
                                                     if (hostTCPPort > 0 && hostTCPPort < 9999)
                                                         mHostTCPPort = hostTCPPort;
+                                                    else
+                                                        mConnected = false;
                                                     Log.d(TAG, "TCP client resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
 
                                                     //Send UDP port to client
@@ -510,6 +522,7 @@ public class WiFiDirectService extends Service {
                                             protected void onPostExecute(Void aVoid) {
                                                 if(mConnected) {
                                                     mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
+                                                    mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                     mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
                                                     mStatusClient.start();
                                                     stopDiscoveringPeers();
@@ -553,6 +566,8 @@ public class WiFiDirectService extends Service {
                                                         int hostTCPPort = Integer.valueOf(dataStr);
                                                         if (hostTCPPort > 0 && hostTCPPort < 9999)
                                                             mHostTCPPort = hostTCPPort;
+                                                        else
+                                                            mConnected = false;
                                                         Log.d(TAG, "TCP host resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
 
                                                     } catch (SocketTimeoutException st) {
@@ -578,6 +593,7 @@ public class WiFiDirectService extends Service {
                                                 protected void onPostExecute(Void aVoid) {
                                                     if(mConnected) {
                                                         mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
+                                                        mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                         mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
                                                         mStatusClient.start();
                                                         stopDiscoveringPeers();

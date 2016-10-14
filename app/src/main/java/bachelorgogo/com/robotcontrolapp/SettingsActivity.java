@@ -2,6 +2,7 @@ package bachelorgogo.com.robotcontrolapp;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -12,6 +13,7 @@ import android.preference.Preference;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -25,6 +27,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     static WiFiDirectService mService;
     static boolean mBound;
     static boolean mUnsyncedChanges;
+    static PreferenceFragment mPreferenceFragment;
+    static AlertDialog mConfirmationDialog;
 
     /**
      * A preference value change listener that updates the preference's summary
@@ -81,10 +85,28 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     protected void onCreate(final Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        getFragmentManager().beginTransaction().replace(android.R.id.content, new PreferenceFragment()).commit();
+        mPreferenceFragment = new PreferenceFragment();
+        getFragmentManager().beginTransaction().replace(android.R.id.content, mPreferenceFragment).commit();
         setupActionBar();
         PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
         mUnsyncedChanges = false;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AppCompatAlertDialogStyle);
+        builder.setTitle(getString(R.string.settings_unsaved_changes_dialog_title));
+        builder.setMessage(getString(R.string.settings_unsaved_changes_dialog_message));
+        builder.setPositiveButton(getString(R.string.settings_unsaved_changes_dialog_ok_btn_text), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                mPreferenceFragment.restorePreferences();
+                onBackPressed();
+            }
+        });
+        builder.setNegativeButton(getString(R.string.settings_unsaved_changes_dialog_cancel_btn_text),null);
+        mConfirmationDialog = builder.create();
+
+        //binding to service currently exists for whole lifetime of activity
+        Intent wifiServiceIntent = new Intent(this, WiFiDirectService.class);
+        bindToService(wifiServiceIntent);
     }
 
     @Override
@@ -113,7 +135,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         int itemId = item.getItemId();
         switch (itemId) {
             case android.R.id.home:
-                onBackPressed();
+                if(mUnsyncedChanges)
+                    mConfirmationDialog.show();
+                else
+                    onBackPressed();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -179,18 +204,18 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
 
             mSettings = new SettingsObject() {
                 @Override
-                public void onSuccess() {
+                public void onSuccess(String command) {
                     mUnsyncedChanges = false;
                     upload_btn.setEnabled(true);
                     upload_btn.setSummary(getString(R.string.settings_synced));
                 }
 
                 @Override
-                public void onFailure() {
+                public void onFailure(String command) {
                     mUnsyncedChanges = true;
                     Toast.makeText(getActivity(), getString(R.string.settings_sync_error_toast), Toast.LENGTH_LONG).show();
                     upload_btn.setEnabled(true);
-                    upload_btn.setSummary(getString(R.string.settings_synced));
+                    upload_btn.setSummary(getString(R.string.settings_not_synced));
                 }
             };
 
@@ -204,15 +229,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                             mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false),
                             mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false));
 
-                    //mService.sendControlCommand(mSettings);
+                    mService.sendSettingsObject(mSettings);
                     return true;
                 }
             });
         }
 
-        @Override
-        public void onDestroy() {
-            //Restore settings if not synced when settings activity is closed
+        public void restorePreferences() {
             if (mUnsyncedChanges) {
                 Log.d(TAG,"Restoring preferences");
                 SharedPreferences.Editor editor = mSharedPrefs.edit();
@@ -220,8 +243,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 editor.putString(getString(R.string.settings_video_key), mVideoQualityIndex);
                 editor.putBoolean(getString(R.string.settings_power_save_mode_key), mPowerSaveMode);
                 editor.putBoolean(getString(R.string.settings_assisted_driving_mode_key), mAssistedDrivingMode);
-                editor.apply();
+                editor.commit();
             }
+        }
+
+        @Override
+        public void onDestroy() {
+            restorePreferences();
             super.onDestroy();
         }
     }

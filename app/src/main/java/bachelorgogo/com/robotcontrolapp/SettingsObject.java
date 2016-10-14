@@ -11,6 +11,7 @@ public class SettingsObject {
     public final String VEHICLE_NAME_SETTING = "CV*NM";
     public final String VEHICLE_DRIVE_MODE = "CV*DM";
     public final String VEHICLE_POWER_SAVE_MODE = "CV*CA";
+    public final String CMD_ACK = "CMD*OK";    // HANDSHAKING CMD
 
     // CAMERA SETTINGS
     public final String CAMERA_VIDEO_QUALITY = "CC*VQ";
@@ -77,13 +78,17 @@ public class SettingsObject {
         return mFormattedString;
     }
 
+    public String getAckString() {
+        return CMD_ACK;
+    }
+
     // Should be overridden
-    public void onSuccess() {
+    public void onSuccess(String command) {
 
     }
 
     // Should be overridden
-    public void onFailure() {
+    public void onFailure(String command) {
 
     }
 }

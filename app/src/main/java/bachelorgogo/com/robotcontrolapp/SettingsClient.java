@@ -8,6 +8,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -20,9 +21,9 @@ public class SettingsClient {static final String TAG = "SettingsClient";
     private InetAddress mHostAddress;
     private int mPort;
     private String mCommand;
-    private ServerSocket mServerSocket;
     private Socket mSocket;
     private AsyncTask<Void, Void, Void> async_client;
+    private boolean mSettinsTransmitted = false;
 
     private final int SO_TIMEOUT = 1000;
 
@@ -31,53 +32,65 @@ public class SettingsClient {static final String TAG = "SettingsClient";
         mPort = port;
     }
 
-    public void sendCommand(String command)
+    public void sendSettings(final SettingsObject command)
     {
-        mCommand = command;
+        mCommand = command.getDataString();
         async_client = new AsyncTask<Void, Void, Void>()
         {
             @Override
             protected Void doInBackground(Void... params) {
                 String dataStr = "";
                 try {
-                    mServerSocket = new ServerSocket(mPort);
-                    Log.d(TAG,"Transmitting TCP Packet " + mCommand);
-                    mSocket = mServerSocket.accept();
+                    mSocket = new Socket();
                     mSocket.setSoTimeout(SO_TIMEOUT);
-                    DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
+                    mSocket.bind(null);
+                    mSocket.connect((new InetSocketAddress(mHostAddress, mPort)));
                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
+                    DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
                     //Send port to client
                     out.writeUTF(mCommand);
 
-                    //read client port
-                    dataStr = in.readUTF();
-                    Log.d(TAG, "Logging Data Command Message : " + dataStr);
+                    //Wait for ACK
+                    String recv = in.readUTF();
+                    if(recv.equals(command.getAckString())) {
+                        mSettinsTransmitted = true;
+                    } else {
+                        mSettinsTransmitted = false;
+                    }
 
                 } catch (SocketTimeoutException se) {
                     Log.d(TAG, "Receiving socket on port " + mPort + " timed out");
-                    se.printStackTrace();
-
+                    mSettinsTransmitted = false;
                 } catch (Exception e) {
-                    Log.e(TAG, "Error occurred while sending/receiving Command ");
+                    mSettinsTransmitted = false;
+                    Log.e(TAG, "Error occurred while sending settings ");
                     e.printStackTrace();
                 } finally {
-                    Log.d(TAG,"Checking data is Good ");
-
+                    publishProgress();
                     try{
                         mSocket.close();
-                        mServerSocket.close();
                     }catch (IOException e){
-                        Log.d(TAG, "Error Closing Socket on port " + mPort );
+                        Log.d(TAG, "Error closing socket on port " + mPort );
                         e.printStackTrace();
                     }
                 }
                 return null;
             }
 
+            @Override
+            protected void onProgressUpdate(Void... values) {
+                if(mSettinsTransmitted)
+                    command.onSuccess(mCommand);
+                else
+                    command.onFailure(mCommand);
+
+                super.onProgressUpdate(values);
+            }
+
             protected void onPostExecute(Void result)
             {
-                Log.d(TAG,"Finished sending command");
+                Log.d(TAG,"Finished sending settings");
                 super.onPostExecute(result);
             }
         };
