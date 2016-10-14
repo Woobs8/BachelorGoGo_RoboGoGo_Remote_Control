@@ -72,14 +72,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         Log.d("onCreate:", "called");
         setContentView(R.layout.activity_connect);
 
-        final Button btnControlActivity = (Button)findViewById(R.id.btnControlActivity);
-        btnControlActivity.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ConnectActivity.this, ControlActivity.class);
-                startActivity(intent);
-            }
-        });
 
         //initialize WifiManager
         /*mWifiManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
