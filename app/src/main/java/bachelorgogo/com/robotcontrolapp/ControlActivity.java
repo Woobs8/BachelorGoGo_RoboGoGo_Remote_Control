@@ -1,5 +1,6 @@
 package bachelorgogo.com.robotcontrolapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -22,6 +23,10 @@ public class ControlActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     ImageButton mMenuBtn;
     boolean BACK_PRESSED_ONCE = false;
+
+    FragmentTransaction fragmentTransaction;
+    Fragment controlFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,8 +46,8 @@ public class ControlActivity extends AppCompatActivity
             }
         });
 
-        Fragment controlFragment = new ControlFragment();
-        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        controlFragment = new ControlFragment();
+        fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.containerView,controlFragment,null);
         fragmentTransaction.commit();
 
@@ -107,7 +112,8 @@ public class ControlActivity extends AppCompatActivity
             Toast.makeText(this, "SettingsClicked", Toast.LENGTH_SHORT).show();
         }
         else if (id == R.id.nav_help) {
-            Toast.makeText(this, "Help Clicked", Toast.LENGTH_SHORT).show();
+            Intent startControlActivity = new Intent(ControlActivity.this, HelpActivity.class);
+            startActivity(startControlActivity);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
