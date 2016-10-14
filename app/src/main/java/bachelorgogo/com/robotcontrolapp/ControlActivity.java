@@ -3,8 +3,12 @@ package bachelorgogo.com.robotcontrolapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -13,11 +17,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import org.w3c.dom.Text;
 
 public class ControlActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    final String TAG = "ControlActivity";
     // Fragment argument keys
     public final static String DEVICE_MAC_STRING = "deviceMac";
     public final static String DEVICE_STORAGE_REMAINING_STRING = "deviceStorageRemaining";
@@ -26,6 +34,8 @@ public class ControlActivity extends AppCompatActivity
 
     ImageButton mMenuBtn;
     boolean BACK_PRESSED_ONCE = false;
+
+    private NavigationView mNavigationView;
 
     FragmentTransaction fragmentTransaction;
     Fragment controlFragment;
@@ -36,10 +46,33 @@ public class ControlActivity extends AppCompatActivity
         setContentView(R.layout.activity_control);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.addDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(View drawerView, float slideOffset) {
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+            }
 
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                TextView myTv = (TextView)findViewById(R.id.tvDeviceNameHere);
+                StatusMessage setStatus = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getStatus();
+                myTv.setText(setStatus.getCarName());
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+
+            }
+        });
+        
+        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
+        mNavigationView.setNavigationItemSelectedListener(this);
+        
         mMenuBtn =(ImageButton)findViewById(R.id.drawer_menu_btn);
         mMenuBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -48,13 +81,17 @@ public class ControlActivity extends AppCompatActivity
                 drawer.openDrawer(GravityCompat.START);
             }
         });
+        
+        
 
         controlFragment = new ControlFragment();
         fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.containerView,controlFragment,null);
         fragmentTransaction.commit();
-
     }
+
+
+
 
     @Override
     public void onBackPressed() {
@@ -104,6 +141,7 @@ public class ControlActivity extends AppCompatActivity
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
+        Log.d(TAG, "onNavigationItemSelected: called");
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
@@ -129,7 +167,6 @@ public class ControlActivity extends AppCompatActivity
             wiFiDirectService.disconnectFromDevice();
             finish();
         }
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
