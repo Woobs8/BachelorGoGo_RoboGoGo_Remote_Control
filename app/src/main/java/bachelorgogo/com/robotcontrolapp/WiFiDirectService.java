@@ -27,10 +27,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
-
-import bachelorgogo.com.robotcontrolapp.ControlClient;
 
 public class WiFiDirectService extends Service {
     static final String TAG = "WiFiDirectService";
@@ -70,9 +69,13 @@ public class WiFiDirectService extends Service {
     private boolean mCurrentlyDiscoveringPeers = false;
     private boolean mShouldDiscoverPeers = true;
     private int mDiscoverPeersListeners = 0;
+    private boolean mCurrentlyBroadcastingStatus = false;
+    private int mBroadcastStatusListeners = 0;
     private int mGroupOwnerPort = 9999;
-    private int mHostPort = -1;
-    private int mLocalPort = 4999;
+    private int mHostUDPPort = -1;
+    private int mHostTCPPort = -1;
+    private int mLocalUDPPort = 4999;
+    private int mEstablishConnectionTimeout = 5000; //5 sec * 1000 msec
     private int mServiceDiscoveryInterval = 120000; //2 min * 60 sec * 1000 msec
     private final String mSystemName = "eROTIC";
 
@@ -142,6 +145,7 @@ public class WiFiDirectService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "Service bound");
+        /*
         if (intent != null) {
             boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
             if (discoverPeers) {
@@ -152,14 +156,33 @@ public class WiFiDirectService extends Service {
                 }
             }
         }
+        */
         registerReceiver(mReceiver, mIntentFilter);
         return mBinder;
+    }
+
+    public void addListener(boolean broadcastPeers, boolean broadcastStatus) {
+        if(broadcastPeers) {
+            mDiscoverPeersListeners++;
+            if (!mCurrentlyDiscoveringPeers) {
+                discoverPeers();
+                mServiceDiscoveryHandler.postDelayed(mServiceDiscoveryRunnable, 0);
+            }
+        }
+
+        if(broadcastStatus) {
+            mBroadcastStatusListeners++;
+            if (!mCurrentlyBroadcastingStatus) {
+                mStatusClient.start();
+            }
+        }
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "Service unbound");
         unregisterReceiver(mReceiver);
+        /*
         if (intent != null) {
             boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
             if (discoverPeers)
@@ -173,7 +196,37 @@ public class WiFiDirectService extends Service {
                     mStatusClient.stop();
             }
         }
-        return super.onUnbind(intent);
+        */
+        // return true so onRebind is called
+        return true;
+    }
+
+    public void removeListener(boolean broadcastPeers, boolean broadcastStatus) {
+        if(broadcastPeers) {
+            mDiscoverPeersListeners--;
+            if(mDiscoverPeersListeners <= 0) {
+                stopDiscoveringPeers();
+                mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
+                stopServiceDiscovery();
+                if(mStatusClient != null)
+                    mStatusClient.stop();
+            }
+        }
+
+        if(broadcastStatus) {
+            mBroadcastStatusListeners--;
+            if(mDiscoverPeersListeners <= 0) {
+                mDiscoverPeersListeners = 0;
+                mStatusClient.stop();
+            }
+        }
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        Log.d(TAG, "Service rebound");
+        registerReceiver(mReceiver, mIntentFilter);
+        super.onRebind(intent);
     }
 
     @Override
@@ -183,6 +236,7 @@ public class WiFiDirectService extends Service {
         Log.d(TAG, "Service destroyed");
         stopServiceDiscovery();
         stopDiscoveringPeers();
+        unregisterReceiver(mReceiver);
         if(mStatusClient != null)
             mStatusClient.stop();
     }
@@ -404,39 +458,61 @@ public class WiFiDirectService extends Service {
                                             protected Void doInBackground(Void... params) {
                                                 try {
                                                     mServerSocket = new ServerSocket(mGroupOwnerPort);
-                                                    Log.d(TAG,"Listening for clients on port " + Integer.toString(mGroupOwnerPort));
+                                                    mServerSocket.setSoTimeout(mEstablishConnectionTimeout);
+                                                    Log.d(TAG, "Listening for clients on port " + Integer.toString(mGroupOwnerPort));
                                                     mSocket = mServerSocket.accept();
                                                     mRobotAddress = mSocket.getInetAddress();
                                                     publishProgress();
                                                     DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
                                                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
 
-                                                    //read client port
+                                                    //read client UDP port
                                                     String dataStr = in.readUTF();
-                                                    int hostPort = Integer.valueOf(dataStr);
-                                                    if (hostPort > 0 && hostPort < 9999)
-                                                        mHostPort = hostPort;
-                                                    Log.d(TAG, "client resolved to: " + mRobotAddress + " (port " + mHostPort + ")");
+                                                    int hostUDPPort = Integer.valueOf(dataStr);
+                                                    if (hostUDPPort > 0 && hostUDPPort < 9999)
+                                                        mHostUDPPort = hostUDPPort;
+                                                    Log.d(TAG, "UDP client resolved to: " + mRobotAddress + " (port " + mHostUDPPort + ")");
 
-                                                    //Send port to client
-                                                    out.writeUTF(Integer.toString(mLocalPort));
+                                                    //read client TCP port
+                                                    dataStr = in.readUTF();
+                                                    int hostTCPPort = Integer.valueOf(dataStr);
+                                                    if (hostTCPPort > 0 && hostTCPPort < 9999)
+                                                        mHostTCPPort = hostTCPPort;
+                                                    Log.d(TAG, "TCP client resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
 
-                                                    mSocket.close();
-                                                    mServerSocket.close();
+                                                    //Send UDP port to client
+                                                    out.writeUTF(Integer.toString(mLocalUDPPort));
+
+                                                } catch (SocketTimeoutException st) {
+                                                    Log.d(TAG,"Attempt to establish connection timed out");
+                                                    mConnected = false;
                                                 } catch (IOException e) {
                                                     Log.e(TAG, "Error listening for client IPs");
                                                     e.printStackTrace();
+                                                    mConnected = false;
+                                                }
+                                                finally {
+                                                    try {
+                                                        Log.d(TAG,"Closing socket " + mGroupOwnerPort);
+                                                        mSocket.close();
+                                                        mServerSocket.close();
+                                                    } catch (IOException e) {
+                                                        Log.d(TAG,"Error closing sockets");
+                                                        e.printStackTrace();
+                                                    }
                                                 }
                                                 return null;
                                             }
 
                                             @Override
                                             protected void onPostExecute(Void aVoid) {
-                                                mCommandClient = new ControlClient(mRobotAddress, mHostPort);
-                                                mStatusClient = new RobotStatusClient(mLocalPort, WiFiDirectService.this);
-                                                mStatusClient.start();
-                                                stopDiscoveringPeers();
-                                                stopServiceDiscovery();
+                                                if(mConnected) {
+                                                    mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
+                                                    mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
+                                                    mStatusClient.start();
+                                                    stopDiscoveringPeers();
+                                                    stopServiceDiscovery();
+                                                }
                                             }
                                         };
                                         // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
@@ -452,39 +528,63 @@ public class WiFiDirectService extends Service {
                                                 @Override
                                                 protected Void doInBackground(Void... params) {
                                                     try {
+                                                        Log.d(TAG,"Establishing connection with group owner");
                                                         mSocket = new Socket();
+                                                        mSocket.setSoTimeout(mEstablishConnectionTimeout);
                                                         mSocket.bind(null);
-                                                        mSocket.connect((new InetSocketAddress(mRobotAddress, mGroupOwnerPort)), 500);
+                                                        mSocket.connect((new InetSocketAddress(mRobotAddress, mGroupOwnerPort)));
                                                         DataInputStream in = new DataInputStream(mSocket.getInputStream());
                                                         DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
-                                                        //Send port to server
-                                                        out.writeUTF(Integer.toString(mLocalPort));
+                                                        //Send port to owner
+                                                        out.writeUTF(Integer.toString(mLocalUDPPort));
 
-                                                        //read server port
+                                                        //read owner UDP port
                                                         String dataStr = in.readUTF();
-                                                        int hostPort = Integer.valueOf(dataStr);
-                                                        if (hostPort > 0 && hostPort < 9999)
-                                                            mHostPort = hostPort;
-                                                        mSocket.close();
-                                                        Log.d(TAG, "host resolved to: " + mRobotAddress + " (port " + mHostPort + ")");
+                                                        int hostUDPPort = Integer.valueOf(dataStr);
+                                                        if (hostUDPPort > 0 && hostUDPPort < 9999)
+                                                            mHostUDPPort = hostUDPPort;
+                                                        Log.d(TAG, "UDP host resolved to: " + mRobotAddress + " (port " + mHostUDPPort + ")");
+
+                                                        //read owner TCP port
+                                                        dataStr = in.readUTF();
+                                                        int hostTCPPort = Integer.valueOf(dataStr);
+                                                        if (hostTCPPort > 0 && hostTCPPort < 9999)
+                                                            mHostTCPPort = hostTCPPort;
+                                                        Log.d(TAG, "TCP host resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
+
+                                                    } catch (SocketTimeoutException st) {
+                                                        Log.d(TAG,"Attempt to establish connection timed out");
+                                                        mConnected = false;
                                                     } catch (IOException e) {
+                                                        Log.e(TAG, "Error connecting to group owner");
                                                         e.printStackTrace();
+                                                        mConnected = false;
+                                                    } finally {
+                                                        try {
+                                                            if (mSocket != null)
+                                                                mSocket.close();
+                                                        } catch (IOException e) {
+                                                            Log.d(TAG,"Error closing sockets");
+                                                            e.printStackTrace();
+                                                        }
                                                     }
                                                     return null;
                                                 }
 
                                                 @Override
                                                 protected void onPostExecute(Void aVoid) {
-                                                    mCommandClient = new ControlClient(mRobotAddress, mHostPort);
-                                                    mStatusClient = new RobotStatusClient(mLocalPort, WiFiDirectService.this);
-                                                    mStatusClient.start();
-                                                    stopDiscoveringPeers();
-                                                    stopServiceDiscovery();
+                                                    if(mConnected) {
+                                                        mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
+                                                        mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
+                                                        mStatusClient.start();
+                                                        stopDiscoveringPeers();
+                                                        stopServiceDiscovery();
 
-                                                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
-                                                    localBroadcast.sendBroadcast(notifyActivity);
+                                                        Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                                                        notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                                                        localBroadcast.sendBroadcast(notifyActivity);
+                                                    }
                                                 }
                                             };
                                             // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass

@@ -19,7 +19,7 @@ public class RobotStatusClient {
     private DatagramSocket mDatagramSocket;
     private AsyncTask<Void, Void, Void> async_client;
     private WiFiDirectService mService;
-    private int mReceiveTimeout = 5000; //5sec * 1000 msec
+    private boolean mManualStop;
 
     RobotStatusClient(int port, WiFiDirectService service) {
         mPort = port;
@@ -52,16 +52,21 @@ public class RobotStatusClient {
             async_client.execute((Void[]) null);
 
     }
+
     public void stop() {
-        async_client.cancel(true);
+        mManualStop = true;
+        if(async_client != null) {
+            async_client.cancel(true);
+            mDatagramSocket.close();
+        }
     }
 
     //Will block and listen on socket until message received or timeout reached
     private void listenOnSocket() {
         try {
+            Log.d(TAG,"Opening socket on port " + mPort);
             mDatagramSocket = new DatagramSocket(mPort);
             byte[] packetSizeData = new byte[4];    //Max size = 2^32
-            mDatagramSocket.setSoTimeout(mReceiveTimeout);
 
             //First read size of packet...
             DatagramPacket size_packet = new DatagramPacket(packetSizeData, packetSizeData.length);
@@ -82,11 +87,15 @@ public class RobotStatusClient {
             Intent notifyActivity = new Intent(WiFiDirectService.ROBOT_STATUS_RECEIVED);
             notifyActivity.putExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY, mReceivedString);
             LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
-        } catch (SocketTimeoutException se) {
-            Log.d(TAG, "Receiving socket on port " + mPort + " timed out");
         } catch (Exception e) {
-            Log.e(TAG, "Error occurred while listening on port " + mPort);
-            e.printStackTrace();
+            if (!mManualStop) {
+                Log.e(TAG, "Error occurred while listening on port " + mPort);
+                e.printStackTrace();
+            } else {
+                Log.d(TAG, "Socket on port " + mPort + " closed manually");
+            }
+        } catch (OutOfMemoryError me) {
+            Log.d(TAG,"Out of memory, received data ignored");
         } finally {
             Log.d(TAG,"Closing socket on port " + mPort);
             if (mDatagramSocket != null)
