@@ -16,17 +16,18 @@ import android.widget.TextView;
 
 public class DeviceInfoDialogFragment extends AppCompatDialogFragment {
 
-    private String mDeviceName = "unknown";
-    private String mDeviceAddress = "unknown";
-    private String mDeviceStorageSpace = "unknown";
+    private String mDeviceMac = "unknown";
     private boolean mDeviceCameraAvailable = false;
+    private String mDeviceStorageSpace = "unknown";
+    private String mDeviceStorageRemaining = "unknown";
 
-    public void setmDeviceName(String deviceName) {
-        this.mDeviceName = deviceName;
+
+    public void setmDeviceMac(String deviceName) {
+        this.mDeviceMac = deviceName;
     }
 
-    public void setmDeviceAddress(String deviceAddress) {
-        this.mDeviceAddress = deviceAddress;
+    public void setmDeviceStorageRemaining(String deviceAddress) {
+        this.mDeviceStorageRemaining = deviceAddress;
     }
 
     public void setmDeviceStorageSpace(String deviceStorageSpace) {
@@ -49,9 +50,9 @@ public class DeviceInfoDialogFragment extends AppCompatDialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Bundle arguments = getArguments();
         if(arguments != null) {
-            setmDeviceName(arguments.getString(ControlActivity.DEVICE_NAME_STRING));
-            setmDeviceAddress(arguments.getString(ControlActivity.DEVICE_ADDRESS_STRING));
-            setmDeviceStorageSpace(arguments.getString(ControlActivity.DEVICE_STORAGE_STRING));
+            setmDeviceMac(arguments.getString(ControlActivity.DEVICE_MAC_STRING));
+            setmDeviceStorageRemaining(arguments.getString(ControlActivity.DEVICE_STORAGE_REMAINING_STRING));
+            setmDeviceStorageSpace(arguments.getString(ControlActivity.DEVICE_STORAGE_SPACE_STRING));
             setmDeviceCameraAvailable(arguments.getBoolean(ControlActivity.DEVICE_CAMERA_BOOL));
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -60,14 +61,14 @@ public class DeviceInfoDialogFragment extends AppCompatDialogFragment {
         // Pass null as the parent view because its going in the dialog layout
         View content = inflater.inflate(R.layout.device_info_dialog, null);
         builder.setView(content);
-        TextView tvDeviceName = (TextView)content.findViewById(R.id.tvDeviceNameHere);
-        TextView tvDeviceAddress = (TextView)content.findViewById(R.id.tvIpAddressHere);
-        TextView tvStorage = (TextView)content.findViewById(R.id.tvStorageHere);
-        TextView tvCamera = (TextView)content.findViewById(R.id.tvCameraYesNo);
+        TextView tvDeviceMac = (TextView)content.findViewById(R.id.tvDeviceMacHere);
+        TextView tvDeviceStorageRemaining = (TextView)content.findViewById(R.id.tvDeviceStorageRemainingHere);
+        TextView tvDeviceStorageSpace = (TextView)content.findViewById(R.id.tvDeviceStorageSpaceHere);
+        TextView tvCamera = (TextView)content.findViewById(R.id.tvDeviceCameraAvailableHere);
 
-        tvDeviceName.setText(mDeviceName);
-        tvDeviceAddress.setText(mDeviceAddress);
-        tvStorage.setText(mDeviceStorageSpace);
+        tvDeviceMac.setText(mDeviceMac);
+        tvDeviceStorageRemaining.setText(mDeviceStorageRemaining);
+        tvDeviceStorageSpace.setText(mDeviceStorageSpace);
         if(mDeviceCameraAvailable) {
             tvCamera.setText(getString(R.string.text_yes));
         } else {

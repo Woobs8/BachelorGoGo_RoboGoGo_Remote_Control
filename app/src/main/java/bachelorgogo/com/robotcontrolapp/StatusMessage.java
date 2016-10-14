@@ -11,17 +11,17 @@ public class StatusMessage {
 
     final private String CAR_NAME_TAG = "Name";
     final private String BATTERY_TAG = "Battery";
-    final private String FIRMWARE_TAG = "Firmware";
+    final private String MAC_TAG = "MAC";
     final private String CAMERA_TAG = "Camera";
     final private String STORAGE_SPACE_TAG = "Space";
     final private String STORAGE_REMAINING = "Remaining";
 
-    private String carName = "";
-    private int batteryPercentage = 0;
-    private String firmwareVersion = "";
-    private boolean cameraAvailable = false;
-    private String storageSpace = "";
-    private String storageRemaining = "";
+    private String carName = "BachelorGogo";
+    private String macAddr = "MAC:A:B:C:1:2:3";
+    private int batteryPercentage = 30;
+    private boolean cameraAvailable = true;
+    private String storageSpace = "40TB";
+    private String storageRemaining = "1kB";
 
     StatusMessage(String RawData){
         mRawData = RawData;
@@ -41,8 +41,8 @@ public class StatusMessage {
                 case BATTERY_TAG :
                     batteryPercentage = Integer.parseInt(tempDataSegment[1]);
                     break;
-                case FIRMWARE_TAG :
-                    firmwareVersion = tempDataSegment[1];
+                case MAC_TAG :
+                    macAddr = tempDataSegment[1];
                     break;
                 case CAMERA_TAG :
                     cameraAvailable = (tempDataSegment[1] == "1") ? true : false;
@@ -65,10 +65,6 @@ public class StatusMessage {
         return carName;
     }
 
-    public String getFirmwareVersion() {
-        return firmwareVersion;
-    }
-
     public String getStorageRemaining() {
         return storageRemaining;
     }
@@ -76,8 +72,12 @@ public class StatusMessage {
     public String getStorageSpace() {
         return storageSpace;
     }
+
     public boolean getCameraAvailable(){
         return cameraAvailable;
     }
 
+    public String getMac() {
+        return macAddr;
+    }
 }
