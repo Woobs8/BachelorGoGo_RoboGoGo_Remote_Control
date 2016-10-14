@@ -6,6 +6,7 @@ import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
@@ -20,19 +21,23 @@ public class RobotStatusClient {
     private AsyncTask<Void, Void, Void> async_client;
     private WiFiDirectService mService;
     private boolean mManualStop;
+    private boolean mRunning;
 
     RobotStatusClient(int port, WiFiDirectService service) {
         mPort = port;
         mDatagramSocket = null;
         mService = service;
+        mManualStop = false;
     }
 
     public void start() {
+        mManualStop = false;
         async_client = new AsyncTask<Void, Void, Void>()
         {
             @Override
             protected Void doInBackground(Void... params)
             {
+                mRunning = true;
                 Log.d(TAG,"Started listening for robot status messages");
                 while (!isCancelled())
                     listenOnSocket();
@@ -41,15 +46,20 @@ public class RobotStatusClient {
 
             protected void onPostExecute(Void result)
             {
+                mRunning = false;
                 Log.d(TAG,"Stopped listening for robot status messages");
                 super.onPostExecute(result);
             }
         };
-        // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
-        else
-            async_client.execute((Void[]) null);
+        if(!mRunning) {
+            // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+            else
+                async_client.execute((Void[]) null);
+        } else {
+            Log.d(TAG,"Status receiver already running");
+        }
 
     }
 
@@ -87,7 +97,7 @@ public class RobotStatusClient {
             Intent notifyActivity = new Intent(WiFiDirectService.ROBOT_STATUS_RECEIVED);
             notifyActivity.putExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY, mReceivedString);
             LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
-        } catch (Exception e) {
+        } catch (IOException e) {
             if (!mManualStop) {
                 Log.e(TAG, "Error occurred while listening on port " + mPort);
                 e.printStackTrace();

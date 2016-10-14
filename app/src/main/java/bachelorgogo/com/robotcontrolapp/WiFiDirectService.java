@@ -184,7 +184,11 @@ public class WiFiDirectService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "Service unbound");
-        unregisterReceiver(mReceiver);
+        try {
+            unregisterReceiver(mReceiver);
+        } catch(IllegalArgumentException e) {
+            Log.d(TAG,"Receiver already unregistered. Do nothing.");
+        }
         /*
         if (intent != null) {
             boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
@@ -212,8 +216,6 @@ public class WiFiDirectService extends Service {
                 stopDiscoveringPeers();
                 mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
                 stopServiceDiscovery();
-                if(mStatusClient != null)
-                    mStatusClient.stop();
             }
         }
 
@@ -240,7 +242,11 @@ public class WiFiDirectService extends Service {
         Log.d(TAG, "Service destroyed");
         stopServiceDiscovery();
         stopDiscoveringPeers();
-        unregisterReceiver(mReceiver);
+        try {
+            unregisterReceiver(mReceiver);
+        } catch(IllegalArgumentException e) {
+            Log.d(TAG,"Receiver already unregistered. Do nothing.");
+        }
         if(mStatusClient != null)
             mStatusClient.stop();
     }
@@ -524,7 +530,6 @@ public class WiFiDirectService extends Service {
                                                     mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
                                                     mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                     mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
-                                                    mStatusClient.start();
                                                     stopDiscoveringPeers();
                                                     stopServiceDiscovery();
                                                 }
@@ -595,7 +600,6 @@ public class WiFiDirectService extends Service {
                                                         mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
                                                         mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                         mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
-                                                        mStatusClient.start();
                                                         stopDiscoveringPeers();
                                                         stopServiceDiscovery();
 
