@@ -4,8 +4,8 @@ package bachelorgogo.com.robotcontrolapp;
  * Created by rasmus on 10/13/2016.
  */
 /////////////////// Import of Protocol to send/receive //////////////////////////
-import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SendCommands.*;
-import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DataBroadcastTags.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 /////////////////////////////////////////////////////////////////////////////////
 
 public class StatusMessage {
@@ -43,7 +43,10 @@ public class StatusMessage {
                     macAddr = tempDataSegment[1];
                     break;
                 case CAMERA_TAG :
-                    cameraAvailable = (tempDataSegment[1] != "0" || tempDataSegment[1] =="true") ? true : false;
+                    if(tempDataSegment[1] == TRUE)
+                        cameraAvailable = true;
+                    else if (tempDataSegment[1] == FALSE)
+                        cameraAvailable = false;
                     break;
                 case STORAGE_SPACE_TAG :
                     storageSpace = tempDataSegment[1];

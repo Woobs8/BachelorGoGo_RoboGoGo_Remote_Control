@@ -6,8 +6,8 @@ package bachelorgogo.com.robotcontrolapp;
  */
 
 /////////////////// Import of Protocol to send/receive //////////////////////////
-import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SendCommands.*;
-import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DataBroadcastTags.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
 /////////////////////////////////////////////////////////////////////////////////
 
 public class CommandObject {
@@ -41,7 +41,10 @@ public class CommandObject {
         else if (y < Y_MIN)
             y = Y_MIN;
 
-        DataCommandString = STEERING_XY_COORDINATE + String.format("%.2f", x) + SPACING_BETWEEN_STRINGS + String.format("%.2f", y);
+        DataCommandString = CMD_CONTROL;
+        DataCommandString += STEERING_X_COORDINATE_TAG  + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", x);
+        DataCommandString += SPACING_BETWEEN_STRINGS;
+        DataCommandString += STEERING_Y_COORDINATE_TAG + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", y);
     }
 
     // Called when using power / angle
@@ -56,7 +59,10 @@ public class CommandObject {
         else if (angle < ANGLE_MIN)
             angle = ANGLE_MIN;
 
-        DataCommandString = STEERING_POWER_ANGLE + String.format("%.2f",power) + SPACING_BETWEEN_STRINGS + String.format("%.2f",angle);
+        DataCommandString = CMD_CONTROL;
+        DataCommandString += STEERING_POWER_TAG  + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", power);
+        DataCommandString += SPACING_BETWEEN_STRINGS;
+        DataCommandString += SEERING_ANGLE_TAG + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", angle);
 
     }
 
