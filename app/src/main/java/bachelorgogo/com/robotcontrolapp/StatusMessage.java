@@ -4,33 +4,36 @@ package bachelorgogo.com.robotcontrolapp;
  * Created by rasmus on 10/13/2016.
  */
 /////////////////// Import of Protocol to send/receive //////////////////////////
+import android.util.Log;
+
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 /////////////////////////////////////////////////////////////////////////////////
 
 public class StatusMessage {
-    
+    private final String TAG = "StatusMessage";
     private String mRawData = "";
     private String mSegmentedRawData[];
 
     private String carName = "BachelorGogo";
-    private String macAddr = "MAC:A:B:C:1:2:3";
-    private String ipAddr = "192.180.0.0";
-    private int batteryPercentage = 30;
+    private String macAddr = "";
+    private String ipAddr = "";
+    private int batteryPercentage = 0;
     private boolean cameraAvailable = true;
-    private String storageSpace = "40TB";
-    private String storageRemaining = "1kB";
+    private String storageSpace = "";
+    private String storageRemaining = "";
 
     StatusMessage(String RawData){
         mRawData = RawData;
 
         // Removing Command Header to only have Data
         // Example of header see CommandObject
-        RawData.substring(RawData.indexOf("*")+2);
+        mRawData = RawData.substring(RawData.indexOf("*")+3);
 
         mSegmentedRawData = mRawData.split(";");
 
         for(int i = 0; i < mSegmentedRawData.length; i++){
+            Log.d(TAG,mSegmentedRawData[i]);
             String tempDataSegment[] = mSegmentedRawData[i].split(":");
             switch (tempDataSegment[0]){
                 case CAR_NAME_TAG :
@@ -43,9 +46,9 @@ public class StatusMessage {
                     macAddr = tempDataSegment[1];
                     break;
                 case CAMERA_TAG :
-                    if(tempDataSegment[1] == TRUE)
+                    if(tempDataSegment[1].equals(TRUE))
                         cameraAvailable = true;
-                    else if (tempDataSegment[1] == FALSE)
+                    else if (tempDataSegment[1].equals(FALSE))
                         cameraAvailable = false;
                     break;
                 case STORAGE_SPACE_TAG :

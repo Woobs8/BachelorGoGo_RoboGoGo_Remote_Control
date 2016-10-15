@@ -78,7 +78,7 @@ public class WiFiDirectService extends Service {
     private int mLocalUDPPort = 4999;
     private int mEstablishConnectionTimeout = 5000; //5 sec * 1000 msec
     private int mServiceDiscoveryInterval = 120000; //2 min * 60 sec * 1000 msec
-    private final String mSystemName = "eROTIC";
+    private final String mSystemName = "GiantsFTW";
 
     // Binder given to clients
     private final IBinder mBinder = (IBinder) new LocalBinder();
@@ -177,6 +177,7 @@ public class WiFiDirectService extends Service {
             mBroadcastStatusListeners++;
             if (!mCurrentlyBroadcastingStatus) {
                 mStatusClient.start();
+                mCurrentlyBroadcastingStatus = true;
             }
         }
     }
@@ -224,6 +225,7 @@ public class WiFiDirectService extends Service {
             if(mBroadcastStatusListeners <= 0) {
                 mBroadcastStatusListeners = 0;
                 mStatusClient.stop();
+                mCurrentlyBroadcastingStatus = false;
             }
         }
     }
@@ -247,8 +249,10 @@ public class WiFiDirectService extends Service {
         } catch(IllegalArgumentException e) {
             Log.d(TAG,"Receiver already unregistered. Do nothing.");
         }
-        if(mStatusClient != null)
+        if(mStatusClient != null) {
             mStatusClient.stop();
+            mCurrentlyBroadcastingStatus = false;
+        }
     }
 
     public void connectToDevice(final String deviceAddress) {
@@ -272,7 +276,17 @@ public class WiFiDirectService extends Service {
     }
 
     public void disconnectFromDevice() {
-        mManager.cancelConnect(mChannel,null);
+        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG,"removeGroup successfully called");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.d(TAG,"Error calling removeGroup");
+            }
+        });
         mCommandClient = null;
     }
 
@@ -520,6 +534,10 @@ public class WiFiDirectService extends Service {
                                                         Log.d(TAG,"Error closing sockets");
                                                         e.printStackTrace();
                                                     }
+                                                    if(!mConnected) {
+                                                        mManager.removeGroup(mChannel,null);
+                                                    }
+
                                                 }
                                                 return null;
                                             }
@@ -590,6 +608,9 @@ public class WiFiDirectService extends Service {
                                                             Log.d(TAG,"Error closing sockets");
                                                             e.printStackTrace();
                                                         }
+                                                        if(!mConnected) {
+                                                            mManager.removeGroup(mChannel,null);
+                                                        }
                                                     }
                                                     return null;
                                                 }
@@ -624,8 +645,10 @@ public class WiFiDirectService extends Service {
                 else {
                     mConnected = false;
                     mManager.cancelConnect(mChannel, null);
-                    if(mStatusClient != null)
+                    if(mStatusClient != null) {
                         mStatusClient.stop();
+                        mCurrentlyBroadcastingStatus = false;
+                    }
 
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
                     notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);

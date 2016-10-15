@@ -175,7 +175,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.d("onServiceConnected", "called");
+            Log.d("ConnectActivity", "onServiceConnected called");
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
@@ -186,9 +186,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
+            Log.d("ConnectActivity", "onServiceDisconnected called");
             mBound = false;
-            //Remove peer discovery listener
-            mService.removeListener(true,false);
         }
     };
 
@@ -200,6 +199,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     protected void unbindFromService() {
         // Unbind from the service
         if (mBound) {
+            //Remove peer discovery listener
+            mService.removeListener(true,false);
             unbindService(mConnection);
         }
     }
@@ -316,6 +317,5 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mService.connectToDevice(mSelectedDeviceAddress);
         showConnectProgressSpinner(mTimeout_ms);
     }
-
 }
 

@@ -178,6 +178,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                     case WiFiDirectService.ROBOT_STATUS_RECEIVED:
                         mStatus = new StatusMessage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
                         mProgressBar.setProgress(mStatus.getBatteryPercentage());
+                        Log.d(TAG, "onReceive: " + mStatus.getCameraAvailable());
                 }
             }
         }
@@ -396,6 +397,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         Log.d(TAG, "unbindFromService: ");
         if (mBound) {
             mBound = false;
+            mService.removeListener(false, true);
             mContext.unbindService(mConnection);
         }
     }
@@ -412,7 +414,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.d("onServiceConnected", "called");
+            Log.d(TAG, "onServiceConnected called");
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
@@ -422,8 +424,8 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
+            Log.d(TAG, "onServiceDisconnected called");
             mBound = false;
-            mService.removeListener(false, true);
         }
     };
 }

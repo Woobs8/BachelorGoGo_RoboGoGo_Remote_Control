@@ -41,12 +41,14 @@ public class RobotStatusClient {
                 Log.d(TAG,"Started listening for robot status messages");
                 while (!isCancelled())
                     listenOnSocket();
+
+                mRunning = false;
                 return null;
             }
 
+            @Override
             protected void onPostExecute(Void result)
             {
-                mRunning = false;
                 Log.d(TAG,"Stopped listening for robot status messages");
                 super.onPostExecute(result);
             }
@@ -96,11 +98,11 @@ public class RobotStatusClient {
             //Broadcast received data
             Intent notifyActivity = new Intent(WiFiDirectService.ROBOT_STATUS_RECEIVED);
             notifyActivity.putExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY, mReceivedString);
-            LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
+                LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
         } catch (IOException e) {
             if (!mManualStop) {
-                Log.e(TAG, "Error occurred while listening on port " + mPort);
-                e.printStackTrace();
+                //Log.e(TAG, "Error occurred while listening on port " + mPort);
+                //e.printStackTrace();
             } else {
                 Log.d(TAG, "Socket on port " + mPort + " closed manually");
             }

@@ -56,19 +56,19 @@ public class SettingsObject {
         // COMMAND INSERT
         mFormattedString = CMD_SETTINGS;
         // CAR NAME INSERT
-        mFormattedString += CAR_NAME_TAG + SPACING_BETWEEN_STRINGS + mDeviceName;
-        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
+        mFormattedString += CAR_NAME_TAG + SPACING_BETWEEN_TAG_AND_DATA + mDeviceName;
+        mFormattedString += SPACING_BETWEEN_STRINGS;
 
         // VIDEO QUALITY INSERT
-        mFormattedString += CAMERA_VIDEO_QUALITY_TAG + SPACING_BETWEEN_STRINGS + mVideoQualityIndex;
-        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
+        mFormattedString += CAMERA_VIDEO_QUALITY_TAG + SPACING_BETWEEN_TAG_AND_DATA + mVideoQualityIndex;
+        mFormattedString += SPACING_BETWEEN_STRINGS;
 
         // POWER SAVE MODE INSERT
-        mFormattedString += POWER_SAVE_DRIVE_MODE_TAG + SPACING_BETWEEN_STRINGS + (mPowerSaveMode==true ? TRUE : FALSE);
-        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
+        mFormattedString += POWER_SAVE_DRIVE_MODE_TAG + SPACING_BETWEEN_TAG_AND_DATA + (mPowerSaveMode==true ? TRUE : FALSE);
+        mFormattedString += SPACING_BETWEEN_STRINGS;
 
         // ASSISTED DRIVE MODE INSERT
-        mFormattedString += ASSERTED_DRIVE_MODE_TAG + SPACING_BETWEEN_STRINGS + (mAssistedDrivingMode==true ? TRUE : FALSE)   ;
+        mFormattedString += ASSERTED_DRIVE_MODE_TAG + SPACING_BETWEEN_TAG_AND_DATA + (mAssistedDrivingMode==true ? TRUE : FALSE)   ;
 
     }
 

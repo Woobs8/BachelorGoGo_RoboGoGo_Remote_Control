@@ -38,7 +38,7 @@ public class ControlActivity extends AppCompatActivity
     private NavigationView mNavigationView;
 
     FragmentTransaction fragmentTransaction;
-    Fragment controlFragment;
+    ControlFragment controlFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +55,9 @@ public class ControlActivity extends AppCompatActivity
             @Override
             public void onDrawerOpened(View drawerView) {
                 TextView myTv = (TextView)findViewById(R.id.tvDeviceNameHere);
-                StatusMessage setStatus = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getStatus();
+                StatusMessage setStatus = controlFragment.getStatus();
                 myTv.setText(setStatus.getCarName());
+
             }
 
             @Override
@@ -150,7 +151,8 @@ public class ControlActivity extends AppCompatActivity
         }
         else if (id == R.id.nav_information) {
             //Toast.makeText(this, "Information Clicked", Toast.LENGTH_SHORT).show();
-            StatusMessage setStatus = ((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getStatus();
+            StatusMessage setStatus = controlFragment.getStatus(); //((ControlFragment)getSupportFragmentManager().findFragmentById(R.id.containerView)).getStatus();
+            Log.d(TAG, "onNavigationItemSelected: " + setStatus.getCameraAvailable());
             showDeviceInfoDialog(setStatus.getMac(), setStatus.getStorageSpace(), setStatus.getStorageRemaining(), setStatus.getCameraAvailable());
         }
         else if (id == R.id.nav_settings) {
