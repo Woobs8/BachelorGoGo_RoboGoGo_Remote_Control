@@ -62,7 +62,8 @@ public final class RobotProtocol {
         public static final String STORAGE_SPACE_TAG = "Space";
         public static final String STORAGE_REMAINING_TAG = "Remaining";
         public static final String ASSERTED_DRIVE_MODE_TAG = "Asserted";
-        public static final String POWER_SAVE_DRIVE_MODE_TAG = "Asserted";
+        public static final String CAMERA_VIDEO_QUALITY_TAG = "VideoQuality";
+        public static final String POWER_SAVE_DRIVE_MODE_TAG = "PowerMode";
         public static final String STEERING_X_COORDINATE_TAG = "X";
         public static final String STEERING_Y_COORDINATE_TAG = "Y";
         public static final String STEERING_POWER_TAG = "Pwr";
