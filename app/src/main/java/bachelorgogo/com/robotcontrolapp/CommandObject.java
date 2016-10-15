@@ -1,25 +1,30 @@
 package bachelorgogo.com.robotcontrolapp;
 
+
 /**
  * Created by rasmus on 10/13/2016.
  */
 
+/////////////////// Import of Protocol to send/receive //////////////////////////
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SendCommands.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DataBroadcastTags.*;
+/////////////////////////////////////////////////////////////////////////////////
+
 public class CommandObject {
     // STEERING BY COORDINATES 0-100
-    private final String STEERING_XY_COORDINATE = "CS*XY";
     private final int X_MAX = 100;
     private final int X_MIN = -100;
     private final int Y_MAX = 100;
     private final int Y_MIN = -100;
 
     // STEERING BY POWER(0-100) AND ANGLE(+-0to180)
-    private final String STEERING_POWER_ANGLE = "CS*PA";
     private final int POWER_MAX = 100;
     private final int POWER_MIN = -100;
     private final int ANGLE_MAX = 180;
     private final int ANGLE_MIN = -180;
 
     private String DataCommandString = "";
+
 
     CommandObject() {    }
 
@@ -36,7 +41,7 @@ public class CommandObject {
         else if (y < Y_MIN)
             y = Y_MIN;
 
-        DataCommandString = STEERING_XY_COORDINATE + String.format("%.2f", x) + ";" + String.format("%.2f", y);
+        DataCommandString = STEERING_XY_COORDINATE + String.format("%.2f", x) + SPACING_BETWEEN_STRINGS + String.format("%.2f", y);
     }
 
     // Called when using power / angle
@@ -51,7 +56,7 @@ public class CommandObject {
         else if (angle < ANGLE_MIN)
             angle = ANGLE_MIN;
 
-        DataCommandString = STEERING_POWER_ANGLE + Float.toString(power) + ";" + Float.toString(angle);
+        DataCommandString = STEERING_POWER_ANGLE + String.format("%.2f",power) + SPACING_BETWEEN_STRINGS + String.format("%.2f",angle);
 
     }
 
