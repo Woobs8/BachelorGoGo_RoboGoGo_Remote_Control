@@ -3,21 +3,19 @@ package bachelorgogo.com.robotcontrolapp;
 /**
  * Created by rasmus on 10/13/2016.
  */
+/////////////////// Import of Protocol to send/receive //////////////////////////
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
+/////////////////////////////////////////////////////////////////////////////////
 
 public class StatusMessage {
     
     private String mRawData = "";
     private String mSegmentedRawData[];
 
-    final private String CAR_NAME_TAG = "Name";
-    final private String BATTERY_TAG = "Battery";
-    final private String MAC_TAG = "MAC";
-    final private String CAMERA_TAG = "Camera";
-    final private String STORAGE_SPACE_TAG = "Space";
-    final private String STORAGE_REMAINING = "Remaining";
-
     private String carName = "BachelorGogo";
     private String macAddr = "MAC:A:B:C:1:2:3";
+    private String ipAddr = "192.180.0.0";
     private int batteryPercentage = 30;
     private boolean cameraAvailable = true;
     private String storageSpace = "40TB";
@@ -41,17 +39,23 @@ public class StatusMessage {
                 case BATTERY_TAG :
                     batteryPercentage = Integer.parseInt(tempDataSegment[1]);
                     break;
-                case MAC_TAG :
+                case MAC_ADDRESS_TAG :
                     macAddr = tempDataSegment[1];
                     break;
                 case CAMERA_TAG :
-                    cameraAvailable = (tempDataSegment[1] == "1") ? true : false;
+                    if(tempDataSegment[1] == TRUE)
+                        cameraAvailable = true;
+                    else if (tempDataSegment[1] == FALSE)
+                        cameraAvailable = false;
                     break;
                 case STORAGE_SPACE_TAG :
                     storageSpace = tempDataSegment[1];
                     break;
-                case STORAGE_REMAINING :
+                case STORAGE_REMAINING_TAG :
                     storageRemaining = tempDataSegment[1];
+                    break;
+                case IP_ADDRESS_TAG :
+                    ipAddr = tempDataSegment[1];
                     break;
             }
         }
@@ -79,5 +83,9 @@ public class StatusMessage {
 
     public String getMac() {
         return macAddr;
+    }
+
+    public String getIpAddr() {
+        return ipAddr;
     }
 }

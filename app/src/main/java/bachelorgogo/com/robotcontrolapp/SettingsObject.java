@@ -1,20 +1,17 @@
 package bachelorgogo.com.robotcontrolapp;
 
+
+/////////////////// Import of Protocol to send/receive //////////////////////////
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
+import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
+/////////////////////////////////////////////////////////////////////////////////
+
 public class SettingsObject {
     private String mFormattedString;
     private String mDeviceName;
     private String mVideoQualityIndex;
     private boolean mPowerSaveMode;
     private boolean mAssistedDrivingMode;
-
-    // VEHICLE SETTING
-    public final String VEHICLE_NAME_SETTING = "CV*NM";
-    public final String VEHICLE_DRIVE_MODE = "CV*DM";
-    public final String VEHICLE_POWER_SAVE_MODE = "CV*CA";
-    public final String CMD_ACK = "CMD*OK";    // HANDSHAKING CMD
-
-    // CAMERA SETTINGS
-    public final String CAMERA_VIDEO_QUALITY = "CC*VQ";
 
     SettingsObject(String name, String videoQuality, boolean powerMode, boolean assistedDrivingMode) {
         setSettings(name, videoQuality, powerMode, assistedDrivingMode);
@@ -55,23 +52,24 @@ public class SettingsObject {
     private void formatString() {
         mFormattedString = "";
 
-        // name
-        mFormattedString += VEHICLE_NAME_SETTING + ":" + mDeviceName+";";
+        RobotProtocol protocol;
+        // COMMAND INSERT
+        mFormattedString = CMD_SETTINGS;
+        // CAR NAME INSERT
+        mFormattedString += CAR_NAME_TAG + SPACING_BETWEEN_STRINGS + mDeviceName;
+        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
 
-        // resolution
-        mFormattedString += CAMERA_VIDEO_QUALITY + ":" + mVideoQualityIndex + ";";
+        // VIDEO QUALITY INSERT
+        mFormattedString += BATTERY_TAG + SPACING_BETWEEN_STRINGS + mVideoQualityIndex;
+        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
 
-        // power mode
-        if(mPowerSaveMode)
-            mFormattedString += VEHICLE_POWER_SAVE_MODE + ":" + Integer.toString(1) + ";";
-        else
-            mFormattedString += VEHICLE_POWER_SAVE_MODE + ":" + Integer.toString(0) + ";";
+        // POWER SAVE MODE INSERT
+        mFormattedString += POWER_SAVE_DRIVE_MODE_TAG + SPACING_BETWEEN_STRINGS + (mPowerSaveMode==true ? TRUE : FALSE);
+        mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
 
-        // assisted driving mode
-        if(mAssistedDrivingMode)
-            mFormattedString += VEHICLE_DRIVE_MODE + ":" + Integer.toString(1) + ";";
-        else
-            mFormattedString += VEHICLE_DRIVE_MODE + ":" + Integer.toString(0) + ";";
+        // ASSISTED DRIVE MODE INSERT
+        mFormattedString += ASSERTED_DRIVE_MODE_TAG + SPACING_BETWEEN_STRINGS + (mAssistedDrivingMode==true ? TRUE : FALSE)   ;
+
     }
 
     public String getDataString() {
