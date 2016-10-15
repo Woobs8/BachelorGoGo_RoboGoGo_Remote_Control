@@ -60,7 +60,7 @@ public class SettingsObject {
         mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
 
         // VIDEO QUALITY INSERT
-        mFormattedString += BATTERY_TAG + SPACING_BETWEEN_STRINGS + mVideoQualityIndex;
+        mFormattedString += CAMERA_VIDEO_QUALITY_TAG + SPACING_BETWEEN_STRINGS + mVideoQualityIndex;
         mFormattedString += SPACING_BETWEEN_TAG_AND_DATA;
 
         // POWER SAVE MODE INSERT
