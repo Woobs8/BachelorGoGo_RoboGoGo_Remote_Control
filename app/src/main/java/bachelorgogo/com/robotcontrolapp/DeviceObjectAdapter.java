@@ -39,6 +39,4 @@ public class DeviceObjectAdapter extends ArrayAdapter<DeviceObject> {
         // Return the view to render in listview
         return convertView;
     }
-
-
 }

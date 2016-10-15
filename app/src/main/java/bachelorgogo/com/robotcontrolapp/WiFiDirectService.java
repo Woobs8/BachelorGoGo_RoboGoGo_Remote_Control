@@ -167,7 +167,6 @@ public class WiFiDirectService extends Service {
             Log.d(TAG,"Adding peer discovery listener");
             mDiscoverPeersListeners++;
             if (!mCurrentlyDiscoveringPeers) {
-                discoverPeers();
                 mServiceDiscoveryHandler.postDelayed(mServiceDiscoveryRunnable, 0);
             }
         }
@@ -427,7 +426,7 @@ public class WiFiDirectService extends Service {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG,"Service request successfully removed");
-                    mServiceRequest = null;
+                    //mServiceRequest = null;
                 }
 
                 @Override
