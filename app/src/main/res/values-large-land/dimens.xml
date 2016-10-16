@@ -1,0 +1,36 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_header_height">160dp</dimen>
+    <dimen name="spinner_margin">50dp</dimen>
+    <dimen name="list_view_size">100dp</dimen>
+    <dimen name="help_activity_horizontal_margin">200dp</dimen>
+    <dimen name="joystick_view_size">200dp</dimen>
+    <dimen name="joystick_margin_bottom">120dp</dimen>
+    <dimen name="joystick_margin_right">20dp</dimen>
+    <dimen name="camera_btn_margin_bottom">185dp</dimen>
+    <dimen name="camera_btn_margin_left">60dp</dimen>
+    <dimen name="camera_circle_margin_bottom">160dp</dimen>
+    <dimen name="camera_circle_margin_left">40dp</dimen>
+    <dimen name="camera_circle_size">120dp</dimen>
+    <dimen name="camera_btn_size">80dp</dimen>
+    <dimen name="assisted_drive_size">40dp</dimen>
+    <dimen name="assisted_drive_margin_top">25dp</dimen>
+    <dimen name="assisted_drive_margin_left">220dp</dimen>
+    <dimen name="power_mode_size">40dp</dimen>
+    <dimen name="power_mode_margin_top">25dp</dimen>
+    <dimen name="power_mode_margin_left">170dp</dimen>
+    <dimen name="battery_length">140dp</dimen>
+    <dimen name="battery_height">25dp</dimen>
+    <dimen name="battery_margin_top">25dp</dimen>
+    <dimen name="battery_text_margin_top">30dp</dimen>
+    <dimen name="battery_text_size">10dp</dimen>
+    <dimen name="camera_switch_margin_top">25dp</dimen>
+    <dimen name="camera_switch_margin_right">25dp</dimen>
+    <dimen name="camera_switch_height">30dp</dimen>
+    <dimen name="camera_switch_length">100dp</dimen>
+
+</resources>

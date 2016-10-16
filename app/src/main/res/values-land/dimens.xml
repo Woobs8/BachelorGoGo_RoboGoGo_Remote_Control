@@ -7,5 +7,36 @@
     <dimen name="nav_header_height">160dp</dimen>
     <dimen name="spinner_margin">50dp</dimen>
     <dimen name="list_view_size">100dp</dimen>
+    <dimen name="help_activity_horizontal_margin">50dp</dimen>
+    <dimen name="joystick_view_size">120dp</dimen>
+    <dimen name="joystick_margin_bottom">10dp</dimen>
+    <dimen name="joystick_margin_right">0dp</dimen>
+    <dimen name="camera_btn_margin_bottom">35dp</dimen>
+    <dimen name="camera_btn_margin_left">35dp</dimen>
+    <dimen name="camera_btn_size">50dp</dimen>
+    <dimen name="camera_circle_margin_bottom">30dp</dimen>
+    <dimen name="camera_circle_margin_left">30dp</dimen>
+    <dimen name="camera_circle_size">80dp</dimen>
+    <dimen name="assisted_drive_size">15dp</dimen>
+    <dimen name="assisted_drive_margin_top">12dp</dimen>
+    <dimen name="assisted_drive_margin_left">120dp</dimen>
+    <dimen name="power_mode_size">15dp</dimen>
+    <dimen name="power_mode_margin_top">12dp</dimen>
+    <dimen name="power_mode_margin_left">90dp</dimen>
+    <dimen name="battery_length">90dp</dimen>
+    <dimen name="battery_height">15dp</dimen>
+    <dimen name="battery_margin_top">13dp</dimen>
+    <dimen name="battery_text_margin_top">15dp</dimen>
+    <dimen name="battery_text_size">7dp</dimen>
+    <dimen name="camera_switch_margin_top">10dp</dimen>
+    <dimen name="camera_switch_margin_right">20dp</dimen>
+    <dimen name="camera_switch_height">15dp</dimen>
+    <dimen name="camera_switch_length">80dp</dimen>
+
+
+
+
+
+
 
 </resources>

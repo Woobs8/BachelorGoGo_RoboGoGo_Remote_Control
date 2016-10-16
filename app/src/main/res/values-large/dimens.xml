@@ -7,5 +7,6 @@
     <dimen name="nav_header_height">160dp</dimen>
     <dimen name="spinner_margin">50dp</dimen>
     <dimen name="list_view_size">100dp</dimen>
+    <dimen name="help_activity_horizontal_margin">50dp</dimen>
 
 </resources>

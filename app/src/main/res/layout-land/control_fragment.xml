@@ -16,40 +16,30 @@
         android:layout_height="match_parent"
         android:id="@+id/VideoViewID"/>
 
-    <RelativeLayout
-        android:id="@+id/layout_joystick"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginRight="0px"
-        android:layout_marginBottom="0px"
-        android:background="@drawable/outerjoystickringtwo" >
-    </RelativeLayout>
-
     <ImageButton
-        android:layout_width="8mm"
-        android:layout_height="8mm"
+        android:layout_width="@dimen/camera_btn_size"
+        android:layout_height="@dimen/camera_btn_size"
         android:src="@drawable/ic_camera_icon"
         android:background="@null"
         android:scaleType="fitCenter"
         android:id="@+id/camera_icon"
-        android:layout_alignBottom="@+id/camera_circle"
-        android:layout_alignLeft="@+id/camera_circle"
-        android:layout_marginBottom="2.2mm"
-        android:layout_marginLeft="2mm"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginBottom="@dimen/camera_btn_margin_bottom"
+        android:layout_marginLeft="@dimen/camera_btn_margin_left"
         />
 
     <ImageButton
-        android:layout_width="12mm"
-        android:layout_height="12mm"
+        android:layout_width="@dimen/camera_circle_size"
+        android:layout_height="@dimen/camera_circle_size"
         android:src="@drawable/ic_camera_circle"
         android:id="@+id/camera_circle"
         android:background="@null"
         android:scaleType="fitCenter"
-        android:layout_alignBottom="@id/layout_joystick"
-        android:layout_marginBottom="4mm"
-        android:layout_marginLeft="4mm"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginBottom="@dimen/camera_circle_margin_bottom"
+        android:layout_marginLeft="@dimen/camera_circle_margin_left"
         />
 
     <TextView
@@ -75,58 +65,69 @@
     <Switch
         android:text="Camera Stream"
         android:textColor="@color/colorPrimary"
-        android:textSize="10dip"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:textSize="@dimen/battery_text_size"
+        android:scaleType="fitCenter"
+        android:layout_width="@dimen/camera_switch_length"
+        android:layout_height="@dimen/camera_switch_height"
         android:id="@+id/CameraStreamSwitch"
-        android:layout_marginTop="12dp"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginRight="13dp"
-        android:layout_marginEnd="13dp" />
+        android:layout_marginRight="@dimen/camera_switch_margin_right"
+        android:layout_marginTop="@dimen/camera_switch_margin_top" />
 
     <ProgressBar
         style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="100dp"
-        android:layout_height="20dp"
+        android:layout_width="@dimen/battery_length"
+        android:layout_height="@dimen/battery_height"
         android:id="@+id/progressBar"
         android:progressDrawable="@drawable/greenprogress"
-        android:layout_alignBottom="@+id/CameraStreamSwitch"
+        android:layout_marginTop="@dimen/battery_margin_top"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Battery"
-        android:textSize="10dip"
+        android:textSize="@dimen/battery_text_size"
         android:textColor="@color/colorPrimary"
         android:id="@+id/BatteryTextView"
-        android:layout_alignTop="@+id/CameraStreamSwitch"
-        android:layout_alignBottom="@+id/CameraStreamSwitch"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="9dp"/>
+        android:layout_marginTop="@dimen/battery_text_margin_top"/>
 
     <ImageView
-        android:layout_width="4mm"
-        android:layout_height="4mm"
+        android:layout_width="@dimen/assisted_drive_size"
+        android:layout_height="@dimen/assisted_drive_size"
         android:src="@drawable/ic_wheel_icon"
+        android:scaleType="fitCenter"
         android:id="@+id/imgWheel"
-        android:layout_alignBottom="@+id/progressBar"
-        android:layout_toRightOf="@+id/camera_circle"
-        android:layout_toEndOf="@+id/camera_circle"
-        android:layout_marginLeft="57dp"
-        android:layout_marginStart="57dp" />
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="@dimen/assisted_drive_margin_left"
+        android:layout_marginTop="@dimen/assisted_drive_margin_top" />
 
     <ImageView
-        android:layout_width="4mm"
-        android:layout_height="4mm"
+        android:layout_width="@dimen/power_mode_size"
+        android:layout_height="@dimen/power_mode_size"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_batterysaving_icon"
         android:id="@+id/imgBatterySaver"
-        android:layout_alignTop="@+id/imgWheel"
-        android:layout_toRightOf="@+id/camera_circle"
-        android:layout_toEndOf="@+id/camera_circle"
-        android:layout_marginLeft="13dp"
-        android:layout_marginStart="13dp" />
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="@dimen/power_mode_margin_left"
+        android:layout_marginTop="@dimen/power_mode_margin_top" />
+
+    <RelativeLayout
+        android:id="@+id/layout_joystick"
+        android:layout_width="@dimen/joystick_view_size"
+        android:layout_height="@dimen/joystick_view_size"
+        android:scaleType="fitCenter"
+        android:background="@drawable/outerjoystickringtwo"
+        android:layout_marginRight="@dimen/joystick_margin_right"
+        android:layout_marginBottom="@dimen/joystick_margin_bottom"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true">
+    </RelativeLayout>
 
 </RelativeLayout>
