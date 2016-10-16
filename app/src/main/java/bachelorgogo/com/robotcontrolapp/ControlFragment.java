@@ -154,6 +154,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         Log.d("onResume", "Called");
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WiFiDirectService.ROBOT_STATUS_RECEIVED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
         LocalBroadcastManager.getInstance(mContext).registerReceiver(mBroadcastReceiver, mIntentFilter);
 
         Intent wifiServiceIntent = new Intent(mContext, WiFiDirectService.class);
@@ -179,6 +180,12 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                         mStatus = new StatusMessage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
                         mProgressBar.setProgress(mStatus.getBatteryPercentage());
                         Log.d(TAG, "onReceive: " + mStatus.getCameraAvailable());
+                        break;
+                    case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
+                        boolean connection_state = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY,true);
+                        if(!connection_state)
+                            Toast.makeText(mContext, R.string.text_Disconnected, Toast.LENGTH_LONG).show();
+                            getActivity().finish();
                 }
             }
         }
@@ -202,7 +209,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
         // Create the joystick and size it
         js = new Joystick(getContext(), layout_joystick, R.drawable.innerjoystickring);
-        js.setAutoSizeSquare(JOYSTICK_LAYOUT_SIZE);
 
         // Setup text views from start for development
         if(DEVELOPING)

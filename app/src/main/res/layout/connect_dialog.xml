@@ -15,7 +15,8 @@
         android:layout_marginStart="15dp"
         android:layout_marginTop="15dp"
         android:id="@+id/tvMac"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="@color/colorDialogMessage"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -25,7 +26,8 @@
         android:text="text"
         android:layout_below="@+id/tvMac"
         android:layout_alignLeft="@+id/tvMac"
-        android:layout_alignStart="@+id/tvMac" />
+        android:layout_alignStart="@+id/tvMac"
+        android:textColor="@color/colorDialogMessage"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -36,7 +38,8 @@
         android:layout_below="@+id/tvDeviceMacHere"
         android:layout_alignLeft="@+id/tvDeviceMacHere"
         android:layout_alignStart="@+id/tvDeviceMacHere"
-        android:text="@string/text_ip_address" />
+        android:text="@string/text_ip_address"
+        android:textColor="@color/colorDialogMessage"/>
 
     <TextView
         android:text="text"
@@ -46,5 +49,6 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:layout_below="@+id/tvStorageSpace"
         android:layout_alignLeft="@+id/tvStorageSpace"
-        android:layout_alignStart="@+id/tvStorageSpace" />
+        android:layout_alignStart="@+id/tvStorageSpace"
+        android:textColor="@color/colorDialogMessage"/>
 </RelativeLayout>

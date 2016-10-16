@@ -59,7 +59,7 @@ public class Joystick {
 
         // Get the drawing object
         draw = new DrawCanvas(mContext);
-
+        setAutoSizeSquare();
         setDefaultStickLayout();
     }
 
@@ -186,9 +186,10 @@ public class Joystick {
         return mParams.height;
     }
 
-    public void setAutoSizeSquare(int length){
+    public void setAutoSizeSquare(){
         // This function autosizes analogue stick to being within ViewGroup
         // Stick is half the size of view and OFFSET will be set to half the sick size.
+        int length = mParams.height;
         setLayoutSize(length, length);
         setStickSize(length/2,length/2);
         setMaxJoystickDistance(length/4);

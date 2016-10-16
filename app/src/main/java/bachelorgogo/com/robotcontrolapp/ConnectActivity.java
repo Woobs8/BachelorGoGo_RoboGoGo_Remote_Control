@@ -1,6 +1,8 @@
 package bachelorgogo.com.robotcontrolapp;
 
 //import android.app.DialogFragment;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatDialogFragment;
 import android.content.BroadcastReceiver;
@@ -54,7 +56,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     IntentFilter mIntentFilter;
 
     // UI Elements
-    //Toolbar myToolbar;
     ListView lstViewDevices;
     private RelativeLayout mProgress;
 
@@ -114,7 +115,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     protected void onPause() {
         unbindFromService();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
-        mToast.cancel();
+        if(mToast != null)
+            mToast.cancel();
         super.onPause();
     }
 
@@ -162,7 +164,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             case R.id.action_update:
                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_refreshing_device, Toast.LENGTH_SHORT);
                 mToast.show();
-                DeviceObject newDeviceObject = new DeviceObject("Test","12315:125412");
                 restartPeerListening();
         }
         return super.onOptionsItemSelected(item);
@@ -214,13 +215,15 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         Log.d(TAG,"Recieved Broadcast status String is : " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
                             Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
                             startActivity(startControlActivity);
                         }
                         else {
                             mConnected = false;
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
                             if(!mIsDiscoveringStarted) {
-                                mToast = Toast.makeText(ConnectActivity.this, "Connection failed", Toast.LENGTH_SHORT);
+                                mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
                                 mService.disconnectFromDevice();
                                 restartPeerListening();
@@ -234,6 +237,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         if(deviceName != null && deviceAddress != null) {
                             UpdateDeviceList(deviceName, deviceAddress);
                         }
+                        break;
                 }
             }
         }
@@ -278,6 +282,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         lstViewDevices.setAlpha((float)(0.5));
         mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
         mToast.show();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
         mService.connectToDevice(mSelectedDeviceAddress);
     }
 

@@ -21,7 +21,7 @@
         android:layout_toLeftOf="@+id/arrow_img"/>
 
     <ImageView
-        app:srcCompat="@mipmap/click_to_show"
+        app:srcCompat="@mipmap/ic_click_to_show_no_background"
         android:id="@+id/arrow_img"
         android:scaleType="fitXY"
         android:layout_width="40dp"

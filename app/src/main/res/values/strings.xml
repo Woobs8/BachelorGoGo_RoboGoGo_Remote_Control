@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">Robot Control App</string>
-    <string name="text_welcome">Welcome to the RobotControl app</string>
+    <string name="text_welcome">Welcome</string>
     <string name="text_Connect">Connect</string>
-    <string name="text_Connecting">Connect</string>
+    <string name="text_Connecting">Connecting...</string>
+    <string name="text_Connection_failed">Connection failed</string>
+    <string name="text_Disconnected">Disconnected from device</string>
     <string name="text_please_connect">Please connect to an available robot:</string>
     <string name="action_update">Update</string>
     <string name="action_updating">Updating</string>
