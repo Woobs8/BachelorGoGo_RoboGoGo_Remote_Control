@@ -167,6 +167,7 @@ public class WiFiDirectService extends Service {
             Log.d(TAG,"Adding peer discovery listener");
             mDiscoverPeersListeners++;
             if (!mCurrentlyDiscoveringPeers) {
+                discoverPeers();
                 mServiceDiscoveryHandler.postDelayed(mServiceDiscoveryRunnable, 0);
             }
         }
