@@ -9,6 +9,7 @@ import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
@@ -23,6 +24,8 @@ import android.util.Log;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -101,8 +104,7 @@ public class WiFiDirectService extends Service {
     public void onCreate() {
         super.onCreate();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        setUpWiFiDirectChannel();
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
@@ -146,18 +148,6 @@ public class WiFiDirectService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "Service bound");
-        /*
-        if (intent != null) {
-            boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
-            if (discoverPeers) {
-                mDiscoverPeersListeners++;
-                if (!mCurrentlyDiscoveringPeers) {
-                    discoverPeers();
-                    mServiceDiscoveryHandler.postDelayed(mServiceDiscoveryRunnable, 0);
-                }
-            }
-        }
-        */
         registerReceiver(mReceiver, mIntentFilter);
         return mBinder;
     }
@@ -190,27 +180,12 @@ public class WiFiDirectService extends Service {
         } catch(IllegalArgumentException e) {
             Log.d(TAG,"Receiver already unregistered. Do nothing.");
         }
-        /*
-        if (intent != null) {
-            boolean discoverPeers = intent.getBooleanExtra(ConnectActivity.DISCOVER_PEERS, false);
-            if (discoverPeers)
-                mDiscoverPeersListeners--;
-            //If no more listeners - stop discovering services
-            if(mDiscoverPeersListeners <= 0) {
-                stopDiscoveringPeers();
-                mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
-                stopServiceDiscovery();
-                if(mStatusClient != null)
-                    mStatusClient.stop();
-            }
-        }
-        */
-        // return true so onRebind is called
         return true;
     }
 
     public void removeListener(boolean broadcastPeers, boolean broadcastStatus) {
         if(broadcastPeers) {
+            Log.d(TAG,"Removing peer discovery listener");
             mDiscoverPeersListeners--;
             if(mDiscoverPeersListeners <= 0) {
                 mDiscoverPeersListeners = 0;
@@ -221,6 +196,7 @@ public class WiFiDirectService extends Service {
         }
 
         if(broadcastStatus) {
+            Log.d(TAG,"Removing status listener");
             mBroadcastStatusListeners--;
             if(mBroadcastStatusListeners <= 0) {
                 mBroadcastStatusListeners = 0;
@@ -239,9 +215,8 @@ public class WiFiDirectService extends Service {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        mManager.removeGroup(mChannel,null);
         Log.d(TAG, "Service destroyed");
+        removeWiFiDirectGroup();
         stopServiceDiscovery();
         stopDiscoveringPeers();
         try {
@@ -253,41 +228,69 @@ public class WiFiDirectService extends Service {
             mStatusClient.stop();
             mCurrentlyBroadcastingStatus = false;
         }
+        super.onDestroy();
+    }
+
+    private void setUpWiFiDirectChannel() {
+        Log.d(TAG,"Initializing channel");
+        mChannel = mManager.initialize(this, getMainLooper(), new WifiP2pManager.ChannelListener() {
+            @Override
+            public void onChannelDisconnected() {
+                setUpWiFiDirectChannel();
+            }
+        });
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+    }
+
+    private void removeWiFiDirectGroup() {
+        Log.d(TAG,"Removing WiFi Direct group");
+        mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(final WifiP2pGroup group) {
+                Log.d(TAG,"onGroupInfoAvailable called");
+                mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG,"removeGroup successfully called");
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG,"Error calling removeGroup");
+                    }
+                });
+            }
+        });
     }
 
     public void connectToDevice(final String deviceAddress) {
-        WifiP2pConfig config = new WifiP2pConfig();
-        config.deviceAddress = deviceAddress;
-        config.groupOwnerIntent = 0;
-        mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+        if(deviceAddress != null && !deviceAddress.isEmpty()) {
+            Log.d(TAG, "Connecting to device: " + deviceAddress);
+            WifiP2pConfig config = new WifiP2pConfig();
+            config.deviceAddress = deviceAddress;
+            config.groupOwnerIntent = 0;
+            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
-            @Override
-            public void onSuccess() {
-                //success logic
-                Log.d(TAG,"Successful attempt to connect to " + deviceAddress);
-            }
+                @Override
+                public void onSuccess() {
+                    //success logic
+                    Log.d(TAG, "Successful attempt to connect to " + deviceAddress);
+                }
 
-            @Override
-            public void onFailure(int reason) {
-                //failure logic
-                Log.d(TAG,"Error attempting to connect to " + deviceAddress);
-            }
-        });
+                @Override
+                public void onFailure(int reason) {
+                    //failure logic
+                    Log.d(TAG, "Error attempting to connect to " + deviceAddress);
+                }
+            });
+        } else {
+            Log.d(TAG,"deviceAddress parameter was empty");
+        }
     }
 
     public void disconnectFromDevice() {
-        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG,"removeGroup successfully called");
-            }
-
-            @Override
-            public void onFailure(int reason) {
-                Log.d(TAG,"Error calling removeGroup");
-            }
-        });
-        mCommandClient = null;
+        Log.d(TAG,"Disconnecting from device");
+        removeWiFiDirectGroup();
     }
 
     public void sendCommandObject(CommandObject command) {
@@ -303,21 +306,23 @@ public class WiFiDirectService extends Service {
     }
 
     private void discoverPeers() {
+        Log.d(TAG,"Starting peer discovery");
         mShouldDiscoverPeers = true;
         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG,"Peers successfully discovered");
+                Log.d(TAG,"discoverPeers successfully called");
             }
 
             @Override
             public void onFailure(int reasonCode) {
-                Log.d(TAG,"Failed to discover peers");
+                Log.d(TAG,"Failed to call discoverPeers");
             }
         });
     }
 
     private void stopDiscoveringPeers() {
+        Log.d(TAG,"Stopping peer discovery");
         mShouldDiscoverPeers = false;
         if(mManager != null) {
             mManager.stopPeerDiscovery(mChannel, new WifiP2pManager.ActionListener() {
@@ -378,6 +383,7 @@ public class WiFiDirectService extends Service {
     }
 
     private void discoverService() {
+        Log.d(TAG,"Starting service discovery");
         mServiceRequest = WifiP2pDnsSdServiceRequest.newInstance();
         mManager.removeServiceRequest(mChannel, mServiceRequest, new WifiP2pManager.ActionListener() {
             @Override
@@ -391,12 +397,12 @@ public class WiFiDirectService extends Service {
 
                                     @Override
                                     public void onSuccess() {
-                                        Log.d(TAG,"Successfully discovered services");
+                                        Log.d(TAG,"discoverServices successfully called");
                                     }
 
                                     @Override
                                     public void onFailure(int code) {
-                                        Log.d(TAG,"Failed to discover services");
+                                        Log.d(TAG,"Failed to call discoverServices");
                                     }
                                 });
                             }
@@ -418,6 +424,7 @@ public class WiFiDirectService extends Service {
 
     private void stopServiceDiscovery() {
         //Stop continuously discovering services
+        Log.d(TAG,"Stopping service discovery");
         if(mServiceDiscoveryHandler != null && mServiceDiscoveryRunnable != null)
             mServiceDiscoveryHandler.removeCallbacks(mServiceDiscoveryRunnable);
 
@@ -455,6 +462,7 @@ public class WiFiDirectService extends Service {
             String action = intent.getAction();
             final LocalBroadcastManager localBroadcast = LocalBroadcastManager.getInstance(mService.getApplicationContext());
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+                Log.d(TAG,"WiFiP2P broadcast: P2P state changed");
                 // Check to see if Wi-Fi is enabled and notify appropriate activity
                 int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
                 if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
@@ -467,21 +475,27 @@ public class WiFiDirectService extends Service {
                 localBroadcast.sendBroadcast(notifyActivity);
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // The peer list has changed.
+                Log.d(TAG,"WiFiP2P broadcast: Peers changed");
                 Intent notifyActivity = new Intent(WIFI_DIRECT_PEERS_CHANGED);
                 localBroadcast.sendBroadcast(notifyActivity);
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
                 // Respond to new connections or disconnections
+                Log.d(TAG,"WiFiP2P broadcast: Connection changed");
                 NetworkInfo networkState = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 // Check if we connected or disconnected.
                 if (networkState.isConnected()) {
+                    Log.d(TAG,"Connection established");
                     if(!mConnected) {
                         mConnected = true;
                         //Resolve IP addresses
                         mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
                             @Override
                             public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                                Log.d(TAG,"ConnectionInfo received");
                                 if (info.groupFormed) {
+                                    Log.d(TAG,"WiFi Direct group is formed");
                                     if (info.isGroupOwner) {
+                                        Log.d(TAG,"This device is group owner");
                                         //Listen for clients and exchange ports
                                         AsyncTask<Void, Void, Void> async_client = new AsyncTask<Void, Void, Void>() {
                                             @Override
@@ -535,9 +549,8 @@ public class WiFiDirectService extends Service {
                                                         e.printStackTrace();
                                                     }
                                                     if(!mConnected) {
-                                                        mManager.removeGroup(mChannel,null);
+                                                        removeWiFiDirectGroup();
                                                     }
-
                                                 }
                                                 return null;
                                             }
@@ -545,11 +558,16 @@ public class WiFiDirectService extends Service {
                                             @Override
                                             protected void onPostExecute(Void aVoid) {
                                                 if(mConnected) {
+                                                    Log.d(TAG,"Connection Established");
                                                     mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
                                                     mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                     mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
                                                     stopDiscoveringPeers();
                                                     stopServiceDiscovery();
+
+                                                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                                                    localBroadcast.sendBroadcast(notifyActivity);
                                                 }
                                             }
                                         };
@@ -559,6 +577,7 @@ public class WiFiDirectService extends Service {
                                         else
                                             async_client.execute((Void[])null);
                                     } else {
+                                        Log.d(TAG,"This device is a client");
                                         mRobotAddress = info.groupOwnerAddress;
                                         if (mRobotAddress != null) {
                                             //transmit ip to group owner and exchange ports
@@ -609,7 +628,7 @@ public class WiFiDirectService extends Service {
                                                             e.printStackTrace();
                                                         }
                                                         if(!mConnected) {
-                                                            mManager.removeGroup(mChannel,null);
+                                                            removeWiFiDirectGroup();
                                                         }
                                                     }
                                                     return null;
@@ -618,6 +637,7 @@ public class WiFiDirectService extends Service {
                                                 @Override
                                                 protected void onPostExecute(Void aVoid) {
                                                     if(mConnected) {
+                                                        Log.d(TAG,"Connection Established");
                                                         mCommandClient = new ControlClient(mRobotAddress, mHostUDPPort);
                                                         mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
                                                         mStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
@@ -643,11 +663,19 @@ public class WiFiDirectService extends Service {
                     }
                 }
                 else {
+                    Log.d(TAG,"No connection established");
                     mConnected = false;
                     mManager.cancelConnect(mChannel, null);
+                    removeWiFiDirectGroup();
                     if(mStatusClient != null) {
                         mStatusClient.stop();
                         mCurrentlyBroadcastingStatus = false;
+                    }
+
+                    if(mDiscoverPeersListeners > 0) {
+                        Log.d(TAG,"There are peer listeners, restarting peer and service discovery");
+                        discoverPeers();
+                        discoverService();
                     }
 
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
@@ -656,11 +684,13 @@ public class WiFiDirectService extends Service {
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 // Respond to this device's wifi state changing
+                Log.d(TAG,"WiFiP2P broadcast: This device changed");
                 Intent notifyActivity = new Intent(WIFI_DIRECT_DEVICE_CHANGED);
                 localBroadcast.sendBroadcast(notifyActivity);
             }
             else if (WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION.equals(action)) {
                 // Peer discovery stopped or started
+                Log.d(TAG,"WiFiP2P broadcast: Peer discovery changed");
                 int discovery = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE, -1);
                 if (discovery == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED) {
                     Log.d(TAG, "Peer discovery started");
