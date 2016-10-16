@@ -1,6 +1,6 @@
 <resources>
     <style name="AppCompatAlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="colorAccent">#FFCC00</item>
+        <item name="colorAccent">@color/colorAccent</item>
         <item name="android:textColorPrimary">#FFFFFF</item>
         <item name="android:background">#5fa3d0</item>
     </style>
@@ -11,6 +11,7 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="alertDialogTheme">@style/AppCompatAlertDialogStyle</item>
     </style>
 
     <style name="AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
