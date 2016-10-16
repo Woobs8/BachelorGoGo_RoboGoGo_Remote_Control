@@ -1,8 +1,12 @@
 package bachelorgogo.com.robotcontrolapp;
 
 //import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatDialogFragment;
 import android.content.BroadcastReceiver;
@@ -48,10 +52,9 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     boolean mBound;
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
-
-    WifiP2pManager mWifiManager;
-    WifiP2pManager.Channel mChannel;
-    WifiP2pManager.PeerListListener mPeerListListener;
+    Handler delayBindToServiceHandler = new Handler();
+    Runnable delayBindToServiceRunnable;
+    private final int DELAY_SERVICE_BIND_MS = 2000;
 
     IntentFilter mIntentFilter;
 
@@ -62,14 +65,13 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     ArrayList<DeviceObject> mDeviceObjects;
     DeviceObjectAdapter mDeviceObjectAdapter;
 
+    private SharedPreferences mSharedPrefs;
+
     // Toasts
     Toast mToast;
 
-    // constans
-    final static int mTimeout_ms = 10000;
-
-    //
     private String mSelectedDeviceAddress;
+    private String mDeviceName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +90,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             mDeviceObjects = new ArrayList<DeviceObject>();
         }
 
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         mDeviceObjectAdapter = new DeviceObjectAdapter(ConnectActivity.this, mDeviceObjects);
         lstViewDevices = (ListView)findViewById(R.id.lstViewAvailRobots);
 
@@ -102,6 +106,17 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 DeviceObject item = (DeviceObject)lstViewDevices.getItemAtPosition(position);
 
                 mSelectedDeviceAddress = item.getDeviceAddress();
+                mDeviceName = item.getName();
+                //Locking screen orientation when connecting, to prevent activity from being destroyed
+                int currentOrientation = getResources().getConfiguration().orientation;
+                if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    Log.d(TAG,"Screen orientation locked to landscape");
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE);
+                }
+                else {
+                    Log.d(TAG,"Screen orientation locked to portrait");
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
+                }
                 showConnectDialog(item.getName(), mSelectedDeviceAddress);
             }
         });
@@ -130,17 +145,25 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
     @Override
     protected void onResume() {
-        Log.d("onResume", "Called");
+        Log.d(TAG, "onResume Called");
         mIntentFilter = new IntentFilter();
-
+        mConnectionAttempted = false;
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
-        Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
+        final Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
-        bindToService(wifiServiceIntent);
+        delayBindToServiceRunnable = new Runnable()
+        {
+            public void run()
+            {
+                bindToService(wifiServiceIntent);
+            }
+        };
+        delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,DELAY_SERVICE_BIND_MS);
+
         super.onResume();
     }
 
@@ -190,7 +213,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     };
 
     protected void bindToService(Intent service) {
-        Log.d("bindToService", "called");
+        Log.d(TAG, "bindToService called");
         bindService(service, mConnection, 0/*Context.BIND_AUTO_CREATE*/);
     }
 
@@ -214,13 +237,20 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         Log.d(TAG,"Connection status changed to: " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+                            //Unlock screen orientation
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                            mDeviceObjectAdapter.clear();
+                            SharedPreferences.Editor editor = mSharedPrefs.edit();
+                            editor.putString(getString(R.string.settings_device_name_key), mDeviceName);
+                            editor.putString(getString(R.string.settings_device_MAC_address_key), mSelectedDeviceAddress);
+                            editor.commit();
                             Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
                             startActivity(startControlActivity);
                         }
                         else {
                             mConnected = false;
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+                            //Unlock screen orientation
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             if(mConnectionAttempted) {
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
@@ -281,16 +311,23 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         lstViewDevices.setAlpha((float)(0.5));
         mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
         mToast.show();
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
         mConnectionAttempted = true;
         mService.connectToDevice(mSelectedDeviceAddress);
     }
 
+    @Override
+    public void onDialogCancelled() {
+        Log.d(TAG,"Screen orientation unlocked");
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
+
     private void restartPeerListening(){
-        mDeviceObjectAdapter.clear();
-        mService.removeListener(true,false);
-        mService.addListener(true,false);
-        lstViewDevices.setAlpha((float)(1));
+        if(mService != null) {
+            mDeviceObjectAdapter.clear();
+            mService.removeListener(true, false);
+            mService.addListener(true, false);
+            lstViewDevices.setAlpha((float)(1));
+        }
     }
 }
 

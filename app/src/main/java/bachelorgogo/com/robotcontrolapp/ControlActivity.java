@@ -1,8 +1,10 @@
 package bachelorgogo.com.robotcontrolapp;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
@@ -39,6 +41,8 @@ public class ControlActivity extends AppCompatActivity
 
     FragmentTransaction fragmentTransaction;
     ControlFragment controlFragment;
+    private SharedPreferences mSharedPrefs;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,17 +86,17 @@ public class ControlActivity extends AppCompatActivity
                 drawer.openDrawer(GravityCompat.START);
             }
         });
-        
-        
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String carName = mSharedPrefs.getString(getString(R.string.settings_device_name_key),getString(R.string.robotName));
+        String carMACAddress = mSharedPrefs.getString(getString(R.string.settings_device_MAC_address_key),"unknown");
 
         controlFragment = new ControlFragment();
         fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.containerView,controlFragment,null);
         fragmentTransaction.commit();
+        controlFragment.getStatus().setCarName(carName);
+        controlFragment.getStatus().setMacAddr(carMACAddress);
     }
-
-
-
 
     @Override
     public void onBackPressed() {
@@ -121,22 +125,6 @@ public class ControlActivity extends AppCompatActivity
                 toast.cancel();
             }
         }, 1000);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.control, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")

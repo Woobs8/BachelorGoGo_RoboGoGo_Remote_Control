@@ -17,6 +17,9 @@
     <string name="settings_video_key">video_preference</string>
     <string name="settings_local_picture_storage_key">local_picture_storage_preference</string>
     <string name="settings_local_video_storage_key">local_video_storage_preference</string>
+    <string name="settings_device_MAC_address_key">device_MAC_address_preference</string>
+    <string name="settings_device_IP_address_key">device_IP_address_preference</string>
+
     <string name="settings_synced">Current settings match the settings on the robot</string>
     <string name="settings_not_synced">Current settings are not uploaded to the robot</string>
     <string name="settings_sync_error_toast">Failed to upload settings</string>

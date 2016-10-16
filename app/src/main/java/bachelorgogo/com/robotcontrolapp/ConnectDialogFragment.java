@@ -11,6 +11,8 @@ import android.support.v7.app.AppCompatDialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -22,7 +24,7 @@ import android.widget.TextView;
  */
 
 public class ConnectDialogFragment extends AppCompatDialogFragment {
-
+    private final String TAG = "ConnectDialogFragment";
     private String mdeviceName = "test";
     private String mdeviceAddress;
 
@@ -36,6 +38,7 @@ public class ConnectDialogFragment extends AppCompatDialogFragment {
 
     public interface ConnectDialogListener {
         public void onDialogPositiveClick(AppCompatDialogFragment dialog);
+        public void onDialogCancelled();
     }
 
     // Use this instance of the dialog interface to deliver action events to activity
@@ -81,8 +84,16 @@ public class ConnectDialogFragment extends AppCompatDialogFragment {
                 mListener.onDialogPositiveClick(ConnectDialogFragment.this);
             }
         });
+
         //return super.onCreateDialog(savedInstanceState);
         return builder.create();
         //return super.onCreateDialog(savedInstanceState);
+    }
+
+    @Override
+    public void onCancel(DialogInterface dialog) {
+        Log.d(TAG,"Dialog cancelled");
+        mListener.onDialogCancelled();
+        super.onCancel(dialog);
     }
 }

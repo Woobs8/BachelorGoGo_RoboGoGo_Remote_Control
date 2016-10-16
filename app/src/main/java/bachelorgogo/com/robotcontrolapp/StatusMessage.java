@@ -26,6 +26,9 @@ public class StatusMessage {
     StatusMessage(String RawData){
         mRawData = RawData;
 
+    }
+
+    public void desipherMeassage(String RawData){
         // Removing Command Header to only have Data
         // Example of header see CommandObject
         mRawData = RawData.substring(RawData.indexOf("*")+3);
@@ -90,5 +93,17 @@ public class StatusMessage {
 
     public String getIpAddr() {
         return ipAddr;
+    }
+
+    public void setCarName(String carName) {
+        this.carName = carName;
+    }
+
+    public void setMacAddr(String macAddr) {
+        this.macAddr = macAddr;
+    }
+
+    public void setIpAddr(String ipAddr) {
+        this.ipAddr = ipAddr;
     }
 }
