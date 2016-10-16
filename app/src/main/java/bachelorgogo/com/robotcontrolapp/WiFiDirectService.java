@@ -434,7 +434,6 @@ public class WiFiDirectService extends Service {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG,"Service request successfully removed");
-                    mServiceRequest = null;
                 }
 
                 @Override
