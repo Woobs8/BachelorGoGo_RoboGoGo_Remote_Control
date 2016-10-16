@@ -26,17 +26,11 @@
     <dimen name="battery_length">90dp</dimen>
     <dimen name="battery_height">15dp</dimen>
     <dimen name="battery_margin_top">13dp</dimen>
-    <dimen name="battery_text_margin_top">15dp</dimen>
-    <dimen name="battery_text_size">7dp</dimen>
+    <dimen name="battery_text_margin_top">14dp</dimen>
+    <dimen name="battery_text_size">9dp</dimen>
     <dimen name="camera_switch_margin_top">10dp</dimen>
-    <dimen name="camera_switch_margin_right">20dp</dimen>
+    <dimen name="camera_switch_margin_right">2dp</dimen>
     <dimen name="camera_switch_height">15dp</dimen>
     <dimen name="camera_switch_length">80dp</dimen>
-
-
-
-
-
-
 
 </resources>
