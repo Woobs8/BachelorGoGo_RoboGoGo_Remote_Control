@@ -18,9 +18,19 @@
         android:layout_marginTop="12dp"
         android:id="@+id/tvWelcome"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        android:layout_below="@+id/toolbarConnActivity"
         android:layout_centerHorizontal="true"
         android:text="@string/text_welcome" />
+
+
+    <ListView
+        android:layout_width="wrap_content"
+        android:id="@+id/lstViewAvailRobots"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_below="@+id/tvPleaseConnect"/>
+
 
     <TextView
         android:layout_width="wrap_content"
@@ -29,15 +39,7 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:text="@string/text_please_connect"
         android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@+id/lstViewAvailRobots"/>
+        android:layout_centerHorizontal="true" />
 
-    <ListView
-        android:layout_width="match_parent"
-        android:id="@+id/lstViewAvailRobots"
-        android:layout_height="@dimen/list_view_size"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

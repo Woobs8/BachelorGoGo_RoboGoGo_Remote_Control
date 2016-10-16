@@ -1,7 +1,7 @@
 package bachelorgogo.com.robotcontrolapp;
 
 //import android.app.DialogFragment;
-import android.app.ActionBar;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatDialogFragment;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -9,30 +9,24 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
-import android.text.Layout;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 public class ConnectActivity extends AppCompatActivity implements ConnectDialogFragment.ConnectDialogListener{
 
@@ -51,6 +45,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     WiFiDirectService mService;
     boolean mBound;
     boolean mConnected = false;
+    boolean mIsDiscoveringStarted = false;
 
     WifiP2pManager mWifiManager;
     WifiP2pManager.Channel mChannel;
@@ -59,12 +54,15 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     IntentFilter mIntentFilter;
 
     // UI Elements
-    Toolbar myToolbar;
+    //Toolbar myToolbar;
     ListView lstViewDevices;
-    private ProgressBar mProgress;
+    private RelativeLayout mProgress;
 
     ArrayList<DeviceObject> mDeviceObjects;
     DeviceObjectAdapter mDeviceObjectAdapter;
+
+    // Toasts
+    Toast mToast;
 
     // constans
     final static int mTimeout_ms = 10000;
@@ -89,25 +87,13 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             mDeviceObjects = new ArrayList<DeviceObject>();
         }
 
-        // Progress spinner
-        //mProgress = (ProgressBar)findViewById(R.id.progressBar);
-        //mProgress.setIndeterminate(true);
-        //mProgress.setVisibility(View.GONE);
-        if(mDeviceObjectAdapter != null)
-        {
-            if(mDeviceObjectAdapter.getCount() <= 0);
-                //mProgress.setVisibility(View.VISIBLE);
-        }
-        else{
-            //mProgress.setVisibility(View.VISIBLE);
-        }
-
-
         mDeviceObjectAdapter = new DeviceObjectAdapter(ConnectActivity.this, mDeviceObjects);
         lstViewDevices = (ListView)findViewById(R.id.lstViewAvailRobots);
+
         View empty = getLayoutInflater().inflate(R.layout.connect_spinner,null,false);
-        addContentView(empty,new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT) );
+        addContentView(empty, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT));
         lstViewDevices.setEmptyView(empty);
+
         lstViewDevices.setAdapter(mDeviceObjectAdapter);
         lstViewDevices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -118,12 +104,17 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 showConnectDialog(item.getName(), mSelectedDeviceAddress);
             }
         });
+
+        // Progress spinner view
+        mProgress = (RelativeLayout)findViewById(R.id.progressBarView);
+
     }
 
     @Override
     protected void onPause() {
         unbindFromService();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
+        mToast.cancel();
         super.onPause();
     }
 
@@ -146,6 +137,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
+        mIsDiscoveringStarted = true;
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         bindToService(wifiServiceIntent);
         super.onResume();
@@ -168,10 +160,10 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_update:
-                Toast.makeText(ConnectActivity.this, R.string.text_updating, Toast.LENGTH_SHORT).show();
-                mDeviceObjectAdapter.clear();
-                mService.removeListener(true,false);
-                mService.addListener(true,false);
+                mToast = Toast.makeText(ConnectActivity.this, R.string.text_refreshing_device, Toast.LENGTH_SHORT);
+                mToast.show();
+                DeviceObject newDeviceObject = new DeviceObject("Test","12315:125412");
+                restartPeerListening();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -219,7 +211,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
                 switch (intent.getAction()) {
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
-                        Log.d("Receiver",Boolean.toString(status));
+                        Log.d(TAG,"Recieved Broadcast status String is : " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
                             Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
@@ -227,6 +219,13 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         }
                         else {
                             mConnected = false;
+                            if(!mIsDiscoveringStarted) {
+                                mToast = Toast.makeText(ConnectActivity.this, "Connection failed", Toast.LENGTH_SHORT);
+                                mToast.show();
+                                mService.disconnectFromDevice();
+                                restartPeerListening();
+                            }
+                            mIsDiscoveringStarted = false;
                         }
                         break;
                     case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
@@ -250,7 +249,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 if (!deviceName.equals(mDeviceObjectAdapter.getItem(i).getName())
                         && !deviceAddress.equals(mDeviceObjectAdapter.getItem(i).getDeviceAddress())) {
                     mDeviceObjectAdapter.add(newDeviceObject);
-                    mProgress.setVisibility(View.INVISIBLE);
                     Log.d(TAG, "UpdateDeviceList: Device didnt Exist " + mDeviceObjectAdapter.getItem(i).getDeviceAddress() +
                             "and" +  deviceAddress);
                 }
@@ -259,35 +257,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         else{
             mDeviceObjectAdapter.add(newDeviceObject);
         }
-    }
-
-    protected void showConnectProgressSpinner(int msTimeOut) {
-        mProgress.setVisibility(View.VISIBLE);
-        //lstViewDevices.setFocusable(false);
-        //lstViewDevices.setClickable(false);
-        lstViewDevices.setVisibility(View.INVISIBLE);
-
-        new CountDownTimer(msTimeOut, msTimeOut) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                //Nothing
-            }
-
-            @Override
-            public void onFinish() {
-                Log.d("CountDownTimer", "onFinish");
-                mProgress.setVisibility(View.INVISIBLE);
-                lstViewDevices.setVisibility(View.VISIBLE);
-                if(!mConnected) {
-                    Toast.makeText(ConnectActivity.this, "Connection failed", Toast.LENGTH_SHORT).show();
-                    mService.disconnectFromDevice();
-                }
-                else {
-
-                    // Something maybe
-                }
-            }
-        }.start();
     }
 
     protected void showConnectDialog(String name, String address) {
@@ -302,8 +271,21 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     // onClick listener implemented for ConnectDialogFragment
     @Override
     public void onDialogPositiveClick(AppCompatDialogFragment dialog) {
+        for (int i = 0; i < lstViewDevices.getChildCount();i++){
+            mDeviceObjectAdapter.disableAll();
+            Log.d(TAG, "onDialogPositiveClick: List item "+ i +" disabled");
+        }
+        lstViewDevices.setAlpha((float)(0.5));
+        mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
+        mToast.show();
         mService.connectToDevice(mSelectedDeviceAddress);
-        showConnectProgressSpinner(mTimeout_ms);
+    }
+
+    private void restartPeerListening(){
+        mDeviceObjectAdapter.clear();
+        mService.removeListener(true,false);
+        mService.addListener(true,false);
+        lstViewDevices.setAlpha((float)(1));
     }
 }
 

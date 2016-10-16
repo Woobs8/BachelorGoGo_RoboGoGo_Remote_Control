@@ -2,9 +2,12 @@
     <string name="app_name">Robot Control App</string>
     <string name="text_welcome">Welcome to the RobotControl app</string>
     <string name="text_Connect">Connect</string>
+    <string name="text_Connecting">Connect</string>
     <string name="text_please_connect">Please connect to an available robot:</string>
     <string name="action_update">Update</string>
-    <string name="text_updating">Refreshing Devices</string>
+    <string name="action_updating">Updating</string>
+    <string name="text_refreshing_device">Refreshing Devices</string>
+    <string name="text_searching">Searching for devices</string>
     <string name="text_device_name">Device name:</string>
     <string name="text_ip_address">Device MAC Address:</string>
     <string name="text_dialog_title">Connect to Device</string>
@@ -45,7 +48,7 @@
         WiFi-Direct module will be closed. The App will return to the Welcome/Connection menu to allow the user
         to connect to the same or a new Robot.\n\n
 
-        If unexpected and undocumented troubles are experienced through useing the App and the Robot
+        If unexpected and undocumented troubles are experienced through using the App and the Robot
         please Contact the support to inform of the problems and hopefully we can help you.
     </string>
     <string name="text_camera_available">Camera Available:</string>
