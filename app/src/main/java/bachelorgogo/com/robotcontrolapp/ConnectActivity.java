@@ -47,7 +47,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     WiFiDirectService mService;
     boolean mBound;
     boolean mConnected = false;
-    boolean mIsDiscoveringStarted = false;
+    private boolean mConnectionAttempted = false;
 
     WifiP2pManager mWifiManager;
     WifiP2pManager.Channel mChannel;
@@ -139,7 +139,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
-        mIsDiscoveringStarted = true;
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         bindToService(wifiServiceIntent);
         super.onResume();
@@ -212,7 +211,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
                 switch (intent.getAction()) {
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
-                        Log.d(TAG,"Recieved Broadcast status String is : " + Boolean.toString(status));
+                        Log.d(TAG,"Connection status changed to: " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
@@ -222,13 +221,13 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         else {
                             mConnected = false;
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-                            if(!mIsDiscoveringStarted) {
+                            if(mConnectionAttempted) {
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
                                 mService.disconnectFromDevice();
-                                restartPeerListening();
+                                mConnectionAttempted = false;
                             }
-                            mIsDiscoveringStarted = false;
+                            restartPeerListening();
                         }
                         break;
                     case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
@@ -283,6 +282,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
         mToast.show();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
+        mConnectionAttempted = true;
         mService.connectToDevice(mSelectedDeviceAddress);
     }
 
