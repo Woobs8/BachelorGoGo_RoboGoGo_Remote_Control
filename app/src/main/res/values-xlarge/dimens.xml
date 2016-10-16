@@ -5,8 +5,10 @@
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="nav_header_vertical_spacing">16dp</dimen>
     <dimen name="nav_header_height">160dp</dimen>
-    <dimen name="spinner_margin">125dp</dimen>
-    <dimen name="list_view_size">250dp</dimen>
-    <dimen name="help_activity_horizontal_margin">20dp</dimen>
+    <dimen name="spinner_margin">50dp</dimen>
+    <dimen name="list_view_size">100dp</dimen>
+    <dimen name="help_activity_horizontal_margin">80dp</dimen>
+    <dimen name="joystick_view_size">80dp</dimen>
+
 
 </resources>
