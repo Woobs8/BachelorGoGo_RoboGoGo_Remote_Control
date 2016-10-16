@@ -64,7 +64,7 @@
 
     <Switch
         android:text="Camera Stream"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@color/colorAccent"
         android:textSize="@dimen/battery_text_size"
         android:scaleType="fitCenter"
         android:layout_width="@dimen/camera_switch_length"
@@ -84,17 +84,6 @@
         android:layout_marginTop="@dimen/battery_margin_top"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Battery"
-        android:textSize="@dimen/battery_text_size"
-        android:textColor="@color/colorPrimary"
-        android:id="@+id/BatteryTextView"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="@dimen/battery_text_margin_top"/>
 
     <ImageView
         android:layout_width="@dimen/assisted_drive_size"
@@ -129,5 +118,15 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true">
     </RelativeLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Battery"
+        android:textSize="@dimen/battery_text_size"
+        android:textColor="@color/colorAccent"
+        android:id="@+id/BatteryTextView"
+        android:layout_marginTop="@dimen/battery_text_margin_top"
+        android:layout_centerHorizontal="true" />
 
 </RelativeLayout>
