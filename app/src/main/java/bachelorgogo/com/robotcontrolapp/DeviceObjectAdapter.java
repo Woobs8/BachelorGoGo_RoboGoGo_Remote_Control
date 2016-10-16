@@ -1,6 +1,7 @@
 package bachelorgogo.com.robotcontrolapp;
 
 import android.content.Context;
+import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 
 public class DeviceObjectAdapter extends ArrayAdapter<DeviceObject> {
     TextView txtViewName;
+    private SparseBooleanArray enabledItems = new SparseBooleanArray();
 
     public DeviceObjectAdapter(Context context, ArrayList<DeviceObject> DeviceObjects) {
         super(context, 0, DeviceObjects);
@@ -36,8 +38,28 @@ public class DeviceObjectAdapter extends ArrayAdapter<DeviceObject> {
         // Populate the data into the template view using the data object
         txtViewName.setText(deviceObject.getName());
 
+        //Check if enabled
+        if(!isEnabled(position)) {
+            enabledItems.put(position,true);
+        }
+
         // Return the view to render in listview
         return convertView;
+    }
+
+    @Override
+    public boolean areAllItemsEnabled() {
+        return false;
+    }
+
+    @Override
+    public boolean isEnabled(int position) {
+        return enabledItems.get(position, true);
+    }
+
+    public void disableAll() {
+        for(int i = 0; i < getCount() ; i++)
+            enabledItems.put(i,false);
     }
 
 
