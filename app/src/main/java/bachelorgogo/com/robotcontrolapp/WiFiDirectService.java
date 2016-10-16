@@ -252,6 +252,7 @@ public class WiFiDirectService extends Service {
                     @Override
                     public void onSuccess() {
                         Log.d(TAG,"removeGroup successfully called");
+                        deletePersistentGroup(group);
                     }
 
                     @Override
@@ -261,6 +262,34 @@ public class WiFiDirectService extends Service {
                 });
             }
         });
+    }
+
+    // @http://stackoverflow.com/questions/23653707/forgetting-old-wifi-direct-connections
+    private void deletePersistentGroup(WifiP2pGroup wifiP2pGroup) {
+        try {
+
+            Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
+            Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
+            Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup",
+                    WifiP2pManager.Channel.class, int.class, WifiP2pManager.ActionListener.class);
+            deletePersistentGroup.invoke(mManager, mChannel, networkId, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.e(TAG, "deletePersistentGroup onSuccess");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e(TAG, "deletePersistentGroup failure: " + reason);
+                }
+            });
+        } catch (NoSuchMethodException e) {
+            Log.e("WIFI", "Could not delete persistent group", e);
+        } catch (InvocationTargetException e) {
+            Log.e("WIFI", "Could not delete persistent group", e);
+        } catch (IllegalAccessException e) {
+            Log.e("WIFI", "Could not delete persistent group", e);
+        }
     }
 
     public void connectToDevice(final String deviceAddress) {

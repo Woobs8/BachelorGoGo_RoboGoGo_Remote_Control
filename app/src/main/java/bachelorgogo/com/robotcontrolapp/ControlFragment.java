@@ -177,9 +177,9 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             if (intent != null) {
                 switch (intent.getAction()) {
                     case WiFiDirectService.ROBOT_STATUS_RECEIVED:
-                        mStatus = new StatusMessage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
+                        mStatus.desipherMeassage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
                         mProgressBar.setProgress(mStatus.getBatteryPercentage());
-                        BatteryPct.setText(Integer.toString(mStatus.getBatteryPercentage()));
+                        BatteryPct.setText(Integer.toString(mStatus.getBatteryPercentage())+"%");
                         Log.d(TAG, "onReceive: " + mStatus.getCameraAvailable());
                         break;
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
