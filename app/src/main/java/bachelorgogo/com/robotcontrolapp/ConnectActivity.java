@@ -133,6 +133,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
         if(mToast != null)
             mToast.cancel();
+        if (delayBindToServiceRunnable != null)
+            delayBindToServiceHandler.removeCallbacks(delayBindToServiceRunnable);
         super.onPause();
     }
 
@@ -158,30 +160,25 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         final Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         // delay Hack to allow robot to register on network before service start looking for it
+        bindToService(wifiServiceIntent);
+
+        // After we have been bound
+        // Reset after a few seconds to make sure broadcasting from car started before listening from device
+        // Afterwards every 30 seconds we want to Restart Listening in the service
         delayBindToServiceRunnable = new Runnable()
         {
             public void run()
             {
-                bindToService(wifiServiceIntent);
-                // After we have been bound
-                // Every 30 seconds we want to Restart Listening in the service
-                delayBindToServiceRunnable = new Runnable()
-                {
-                    public void run()
-                    {
-                        if(mConnectionAttempted) {
-                            Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
-                            restartPeerListening(false);
-                            delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
-                        }
-
-                    }
-                };
-                delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,RESTART_LISTENING_TIMER_MS);
+                if(mConnectionAttempted) {
+                    Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
+                    restartPeerListening(false);
+                    delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
+                }
 
             }
         };
         delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,DELAY_SERVICE_BIND_MS);
+
 
         // Change the runnable to Refresh Listening every 30 seconds
 
