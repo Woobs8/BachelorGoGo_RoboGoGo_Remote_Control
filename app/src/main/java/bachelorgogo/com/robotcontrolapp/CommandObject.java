@@ -11,6 +11,9 @@ import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
 /////////////////////////////////////////////////////////////////////////////////
 
 public class CommandObject {
+    // This object Holds the Data-string to be received by the Robot
+    // The Object is handed to the WifiDirectClient
+
     // STEERING BY COORDINATES 0-100
     private final int X_MAX = 100;
     private final int X_MIN = -100;
@@ -24,7 +27,6 @@ public class CommandObject {
     private final int ANGLE_MIN = -180;
 
     private String DataCommandString = "";
-
 
     CommandObject() {    }
 

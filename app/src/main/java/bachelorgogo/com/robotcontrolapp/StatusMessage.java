@@ -25,12 +25,15 @@ public class StatusMessage {
 
     StatusMessage(String RawData){
         mRawData = RawData;
-
     }
 
     public void desipherMeassage(String RawData){
         // Removing Command Header to only have Data
         // Example of header see CommandObject
+        // ALL command strings are import with the import lines
+        //import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
+        //import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
+
         mRawData = RawData.substring(RawData.indexOf("*")+3);
 
         mSegmentedRawData = mRawData.split(";");

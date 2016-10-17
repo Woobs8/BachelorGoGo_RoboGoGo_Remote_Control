@@ -35,49 +35,43 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     String TAG = "ControlFragment";
 
-    private Context mContext;
+    // Development flag
     boolean DEVELOPING = false;
 
-    // Layout Paramters
+    // Context
+    private Context mContext;
+
+    // UI Elements
+    private TextView BatteryPct;
+    private SharedPreferences mSharedPrefs;
+    private Switch mSwitch;
+    private VideoView mVideoView;
+    private ImageView mImagePowerSaveMode;
+    private ImageView mImageAssistedDriveMode;
+    private ImageButton mImageButton;
     private RelativeLayout mLayout;
+    private RelativeLayout layout_joystick;
+    private TextView AngleTxt;
+    private TextView PowerTxt;
+    private ProgressBar mProgressBar;
 
     // Camera Parameters
     private boolean WASLONGCLICK = false;
 
     // Joystick Parameters
-    int JOYSTICK_UPDATE_TIME_IN_MS = 35;
-    int JOYSTICK_SEND_DELAY_IN_MS  = 300;
-    int JOYSTICK_LAYOUT_SIZE = 500;
-    boolean GET_NEW_TOCH_EVENT = true;
-    boolean SEND_JOYSTICK_INFORMATION = false;
-    RelativeLayout layout_joystick;
-    Joystick js;
-    TextView AngleTxt;
-    TextView PowerTxt;
+    private int JOYSTICK_SEND_DELAY_IN_MS  = 300;
+    private boolean SEND_JOYSTICK_INFORMATION = false;
+    private Joystick js;
+    private Handler sendJoystickHandler = new Handler();
+    private Runnable sendJoystickRunnable;
 
-    // Progress Bar (Battery) Parameters
-    ProgressBar mProgressBar;
-
-    // Battery counter
-    int DEVELOPMENT_BATTERY_COUNTER_TIME_IN_MS = 100;
-    int BATTERY_MAX = 100;
-    int BATTERY_MIN = 0;
-    int _Battery = 100;
-    Handler mHandler;
-    Runnable mHandlertask;
-    Handler sendJoystickHandler = new Handler();
-    Runnable sendJoystickRunnable = new Runnable()
-    {
-        public void run()
-        {
-            Log.d(TAG, "SEND_JOYSTICK_INFORMATION is set to true");
-            SEND_JOYSTICK_INFORMATION = true;
-
-        }
-    };
-
-    TextView BatteryPct;
-
+    // Battery paramters
+    private int DEVELOPMENT_BATTERY_COUNTER_TIME_IN_MS = 100;
+    private int BATTERY_MAX = 100;
+    private int BATTERY_MIN = 0;
+    private int _Battery = 100;
+    private Handler mHandler;
+    private Runnable mHandlertask;
 
     // Communication Parameters
     public final static String BROADCAST_STATUS = "Broadcast Status";
@@ -87,56 +81,8 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     private boolean mConnected = false;
     private StatusMessage mStatus = new StatusMessage("Default");
 
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
-    {
-        Log.d(TAG, "onCreateView");
-        super.onCreate(savedInstanceState);
-
-        // Inflate/Get the Layout
-        mLayout = (RelativeLayout)inflater.inflate(R.layout.control_fragment,null);
-        mContext = getActivity().getApplicationContext();
-
-        ////////////////////////////////
-        // Joystick Setup             //
-        ////////////////////////////////
-        JoystickSetup();
-
-        ////////////////////////////////
-        // Setup Progress Battery Bar //
-        ////////////////////////////////
-        BatteryBarSetup();
-
-        ////////////////////////////////
-        // Setup Camera Button        //
-        ////////////////////////////////
-        CameraButtonSetup();
-
-        ////////////////////////////////
-        // Setup Stream Button        //
-        ////////////////////////////////
-        StreamSwitchSetup();
-
-        settingsIconsSetup();
-
-        return mLayout;
-    }
-
-    @Override
-    public void onStart() {
-        Log.d(TAG, "onStart");
-        settingsIconsSetup();
-        super.onStart();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-    }
-
-
-    CommandObject mCommandObject = new CommandObject(){
+        // Object To handle sending Commands via WiFi
+    private CommandObject mCommandObject = new CommandObject(){
         @Override
         public void onSuccess(String successString) {
             super.onSuccess(successString);
@@ -149,28 +95,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         }
     };
 
-    @Override
-    public void onResume() {
-        Log.d("onResume", "Called");
-        mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WiFiDirectService.ROBOT_STATUS_RECEIVED);
-        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
-        LocalBroadcastManager.getInstance(mContext).registerReceiver(mBroadcastReceiver, mIntentFilter);
-
-        Intent wifiServiceIntent = new Intent(mContext, WiFiDirectService.class);
-        wifiServiceIntent.putExtra(ControlFragment.BROADCAST_STATUS, true);
-        bindToService(wifiServiceIntent);
-        super.onResume();
-    }
-
-    @Override
-    public void onPause() {
-        LocalBroadcastManager.getInstance(mContext).unregisterReceiver(mBroadcastReceiver);
-        unbindFromService();
-        super.onPause();
-    }
-
-    // Broadcast handler for received Intents.
+        // Broadcast handler for received Intents.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -180,17 +105,86 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                         mStatus.desipherMeassage(intent.getStringExtra(WiFiDirectService.ROBOT_STATUS_RECEIVED_KEY));
                         mProgressBar.setProgress(mStatus.getBatteryPercentage());
                         BatteryPct.setText(Integer.toString(mStatus.getBatteryPercentage())+"%");
-                        Log.d(TAG, "onReceive: " + mStatus.getCameraAvailable());
                         break;
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
                         boolean connection_state = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY,true);
                         if(!connection_state)
                             Toast.makeText(mContext, R.string.text_Disconnected, Toast.LENGTH_LONG).show();
-                            getActivity().finish();
+                        getActivity().finish();
                 }
             }
         }
     };
+
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
+    {
+        Log.d(TAG, "onCreateView");
+        super.onCreate(savedInstanceState);
+
+        // Inflate/Get the Layout
+        mLayout = (RelativeLayout)inflater.inflate(R.layout.control_fragment,null);
+        mContext = getActivity().getApplicationContext();
+
+        // Instantiate the Joystick and Setup Functionality to Receive User Inputs
+        // In the User Inputs Handler the The Controls Are Send via WiFi to the Robot
+        JoystickSetup();
+
+        // Get the objects to Handle the Battery Bar
+        // If Development is Enabled A Timer will Test the BatteryBar
+        // by continuously changing the battery percentage
+        BatteryBarSetup();
+
+        // Get the views to Handle Camera button Clicks.
+        // and implements the functionality when camera
+        // button is clicked
+        // Only Development functionality is implemented
+        // TODO - streaming Camera streaming not yet implemented!
+        CameraButtonSetup();
+
+        // Get the views to Handle Streaming control switch clicks.
+        // and implement the functionality to send that we want streaming to start
+        // Only Development functionality is implemented
+        // TODO - streaming button control commands are NOT send due to Camera streaming not yet implemented
+        StreamSwitchSetup();
+
+        return mLayout;
+    }
+
+    @Override
+    public void onStart() {
+        Log.d(TAG, "onStart");
+        // set up Icons to Show if Assisted Drive mode Or/And Power Save Mode is Enabled/Disabled
+        // Gets The views and handles the Visibility of the views
+        settingsIconsSetup();
+        super.onStart();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
+
+    @Override
+    public void onResume() {
+        // Set up WiFi Direct
+        // Registering Broadcast Receiver to Receive messages from the WiFi-Service
+        // Binds to The service to be able to send Control Commands
+        // and receive StatusMessages
+        setupWiFiDirect();
+
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+
+        pauseWiFiDirect();
+
+        super.onPause();
+    }
 
     @Override
     public void onDestroy() {
@@ -198,31 +192,65 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         super.onDestroy();
     }
 
+
+    private void setupWiFiDirect(){
+        // Add Intent Actions to IntentFilter
+        mIntentFilter = new IntentFilter();
+        mIntentFilter.addAction(WiFiDirectService.ROBOT_STATUS_RECEIVED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
+
+        // Register Broadcast Receiver
+        LocalBroadcastManager.getInstance(mContext).registerReceiver(mBroadcastReceiver, mIntentFilter);
+
+        // Bind To Wifi Service
+        Intent wifiServiceIntent = new Intent(mContext, WiFiDirectService.class);
+        wifiServiceIntent.putExtra(ControlFragment.BROADCAST_STATUS, true);
+        bindToService(wifiServiceIntent);
+    }
+
+    private void pauseWiFiDirect(){
+        // Unregister Broadcast Receiver when Pausing Activity
+        LocalBroadcastManager.getInstance(mContext).unregisterReceiver(mBroadcastReceiver);
+        // Unbind from Wifi Service when Pausing Activity
+        unbindFromService();
+    }
+
     private void JoystickSetup()
     {
-        ////////////////////////////
-        // Development Text Views //
-        ////////////////////////////
+        // Get Development Text Views
         PowerTxt = (TextView) mLayout.findViewById(R.id.PowerId);
         AngleTxt = (TextView) mLayout.findViewById(R.id.AngleId);
 
+        // Get the Actual Joystick Layout
         layout_joystick = (RelativeLayout) mLayout.findViewById(R.id.layout_joystick);
 
-        // Create the joystick and size it
+
+        // Create the joystick
         js = new Joystick(getContext(), layout_joystick, R.drawable.innerjoystickring);
 
-        // Setup text views from start for development
-        if(DEVELOPING)
+        // Set up Runnable for Timer
+        sendJoystickRunnable = new Runnable()
         {
+            public void run()
+            {
+                Log.d(TAG, "SEND_JOYSTICK_INFORMATION is set to true");
+                SEND_JOYSTICK_INFORMATION = true;
+
+            }
+        };
+
+        // Setup text views from start for development
+        if(DEVELOPING) {
             AngleTxt.setText(js.getAngle() + "degree");
             PowerTxt.setText(js.getDistancePercentage() + " %");
         }
-        else
-        {
+        else {
             AngleTxt.setVisibility(View.GONE);
             PowerTxt.setVisibility(View.GONE);
         }
 
+        // If Joystick Is Touched And OnTouchListener is implemented to
+        // Handle User imputs on the Joystick
         layout_joystick.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
 
@@ -231,9 +259,9 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                 else if (arg1.getAction() == MotionEvent.ACTION_UP)
                 {
                     // When joystick is released Force joystick to be reset on screen
-                    GET_NEW_TOCH_EVENT = true;
                     SEND_JOYSTICK_INFORMATION = true;
                 }
+                // Draw the Joystick On the Coordinate gotten in MotionEvent arg1
                 js.drawStick(arg1);
 
                 // Setup text views for development
@@ -244,19 +272,20 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                     AngleTxt.setText(angle + "degree");
                     PowerTxt.setText(power + " %");
                 }
-                GET_NEW_TOCH_EVENT = false;
 
+                // We will ONLY send Joystick Information about 3 times a Second
+                // The Commands Are not necessary to Send more often than that
                 if(SEND_JOYSTICK_INFORMATION){
+                    // Send Commands with the Object
                     mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
+                    // Send the Obejct through Wifi
                     mService.sendCommandObject(mCommandObject);
+
                     SEND_JOYSTICK_INFORMATION = false;
-                    Log.d(TAG, "SEND_JOYSTICK_INFORMATION is set to false");
+                    // Timer is Called to make sure We are only sending 3 times a second
                     sendJoystickHandler.removeCallbacks(sendJoystickRunnable);
-                }
-                else{
                     sendJoystickHandler.postDelayed(sendJoystickRunnable, JOYSTICK_SEND_DELAY_IN_MS);
                 }
-
                 return true;
             }
         });
@@ -265,10 +294,12 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     private void BatteryBarSetup()
     {
+        // Get The Battery Bar
         mProgressBar = (ProgressBar) mLayout.findViewById(R.id.progressBar);
         BatteryPct = (TextView)mLayout.findViewById(R.id.BatteryTextView);
 
-        // Code to Test Battery
+        // Code to Test Battery if Development Flag is set
+        // Will continuously countdown Battery percentage
         if(DEVELOPING)
         {
             mHandler = new Handler();
@@ -291,31 +322,46 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     private void CameraButtonSetup()
     {
-        ImageButton imgBtn = (ImageButton) mLayout.findViewById(R.id.camera_circle);
-        imgBtn.setOnClickListener(new View.OnClickListener()
+        // Get The ImageButton
+        mImageButton = (ImageButton) mLayout.findViewById(R.id.camera_circle);
+
+        // Set An Onclick listener to Receive if User clicks Button
+        // Real Camera Functionality have NOT been implemented due to
+        // WiFi Camera Stream is not implemented yet!
+        mImageButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
+                // Check if we have just received an OnLongClick Event
+                // For some reason OnClick is received when releasing
+                // the button in a Long Click
                 if(WASLONGCLICK) {
                     WASLONGCLICK = false;
                     return;
                 }
+                // If we have set the development flag we can se a log message showing
+                // if we get A Short Click event
                 if(DEVELOPING)
                 {
-                    Log.d("CLICK", "onClick: SHORT");
+                    Log.d(TAG, "onClick: SHORT");
                     mHandler.removeCallbacks(mHandlertask);
                 }
             }
         });
-        imgBtn.setOnLongClickListener(new View.OnLongClickListener() {
+        mImageButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
+                // If we have set the development flag we can se a log message showing
+                // if we get A Long Click event
                 if(DEVELOPING)
                 {
-                    Log.d("CLICK", "onClick: LONG");
+                    Log.d(TAG, "onClick: LONG");
                     mHandlertask.run();
                 }
+                // Set that We have just received Long Click
+                // For some reason OnClick is received when releasing
+                // the button in a Long Click
                 WASLONGCLICK = true;
                 return false;
             }
@@ -324,54 +370,45 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     private void StreamSwitchSetup()
     {
-        Switch mSwitch = (Switch) mLayout.findViewById(R.id.CameraStreamSwitch);
-        VideoView video=(VideoView)mLayout.findViewById(R.id.VideoViewID);
-        video.setVisibility(VideoView.GONE);
+        // Get the Switch
+        mSwitch = (Switch) mLayout.findViewById(R.id.CameraStreamSwitch);
+
+        // Get The VideoView
+        mVideoView =(VideoView)mLayout.findViewById(R.id.VideoViewID);
+        mVideoView.setVisibility(VideoView.GONE);
+
+        // If We Receive a Switch Event we will start or stop the stream of video
+        // Video is not yet implemented on the Robot thus development code has been inserted
+        // to show it working.
         mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                // If the developers device is on the Internet and the development flag is set
+                // A Video Will be shown if the developer set the switch On/True.
+                // Stream is stopped if set to false
                 if(DEVELOPING)
                 {
                     Log.d("STREAM", "onCheckedChanged: " + isChecked);
 
+                    // Hardcoded link to a Video to stream
                     String path="http://clips.vorwaerts-gmbh.de/VfE_html5.mp4";
-                    VideoView video=(VideoView)mLayout.findViewById(R.id.VideoViewID);
                     if(isChecked){
                         Uri uri=Uri.parse(path);
-                        video.setVideoURI(uri);
-                        video.setVisibility(VideoView.VISIBLE);
-                        video.start();
-                        video.setOnPreparedListener(PreparedListener);
+                        mVideoView.setVideoURI(uri);
+                        mVideoView.setVisibility(VideoView.VISIBLE);
+                        mVideoView.start();
+                        // Make sure that we Do NOT play audio received.
+                        // No audio should be received from the robot
+                        mVideoView.setOnPreparedListener(PreparedListener);
                     }
                     else{
-                        video.stopPlayback();
-                        video.setVisibility(VideoView.GONE);
+                        mVideoView.stopPlayback();
+                        mVideoView.setVisibility(VideoView.GONE);
                     }
                 }
             }
         });
-    }
-
-    private void settingsIconsSetup() {
-        SharedPreferences mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        ImageView imgSaveMode = (ImageView)mLayout.findViewById(R.id.imgBatterySaver);
-        ImageView imgDriveAssist = (ImageView)mLayout.findViewById(R.id.imgWheel);
-        if(mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false)) {
-            imgSaveMode.setVisibility(View.VISIBLE);
-            Log.d(TAG, "VISIBLE");
-        } else {
-
-            imgSaveMode.setVisibility(View.INVISIBLE);
-            Log.d(TAG, "INVISIBLE");
-        }
-
-        if(mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false)) {
-            imgDriveAssist.setVisibility(View.VISIBLE);
-            Log.d(TAG, "VISIBLE");
-        } else {
-            imgDriveAssist.setVisibility(View.INVISIBLE);
-            Log.d(TAG, "INVISIBLE");
-        }
     }
 
     MediaPlayer.OnPreparedListener PreparedListener = new MediaPlayer.OnPreparedListener(){
@@ -393,6 +430,33 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             }
         }
     };
+
+
+    private void settingsIconsSetup() {
+        // Get Shared Preferences
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        // Get the Views To be Showed
+        mImagePowerSaveMode = (ImageView)mLayout.findViewById(R.id.imgBatterySaver);
+        mImageAssistedDriveMode = (ImageView)mLayout.findViewById(R.id.imgWheel);
+
+        // Determine if the views are to be showed or not!
+        if(mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false)) {
+            mImagePowerSaveMode.setVisibility(View.VISIBLE);
+            Log.d(TAG, "VISIBLE");
+        } else {
+
+            mImagePowerSaveMode.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "INVISIBLE");
+        }
+
+        if(mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false)) {
+            mImageAssistedDriveMode.setVisibility(View.VISIBLE);
+            Log.d(TAG, "VISIBLE");
+        } else {
+            mImageAssistedDriveMode.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "INVISIBLE");
+        }
+    }
 
     protected void bindToService(Intent service) {
         Log.d("bindToService", "called");
