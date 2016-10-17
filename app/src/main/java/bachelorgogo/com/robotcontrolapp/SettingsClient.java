@@ -9,17 +9,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
-/**
- * Created by rasmus on 10/13/2016.
+/*
+    SettingsClient opens a TCP socket to the host as specified by the host address and port
+    parameters and transmits the settings stored in the supplied SettingsObject.
  */
-
 public class SettingsClient {static final String TAG = "SettingsClient";
     private InetAddress mHostAddress;
-    private int mPort;
+    private int mHostPort;
     private String mCommand;
     private Socket mSocket;
     private AsyncTask<Void, Void, Void> async_client;
@@ -29,9 +28,13 @@ public class SettingsClient {static final String TAG = "SettingsClient";
 
     SettingsClient(InetAddress host, int port) {
         mHostAddress = host;
-        mPort = port;
+        mHostPort = port;
     }
 
+    /*
+        This function sends the settings stored in the supplied SettingsObject through a TCP
+        socket. The data transmission is done asynchronously.
+     */
     public void sendSettings(final SettingsObject command)
     {
         mCommand = command.getDataString();
@@ -44,11 +47,12 @@ public class SettingsClient {static final String TAG = "SettingsClient";
                     mSocket = new Socket();
                     mSocket.setSoTimeout(SO_TIMEOUT);
                     mSocket.bind(null);
-                    mSocket.connect((new InetSocketAddress(mHostAddress, mPort)));
+                    // Connect to host
+                    mSocket.connect((new InetSocketAddress(mHostAddress, mHostPort)));
                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
                     DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
-                    //Send port to client
+                    //Send port to host
                     out.writeUTF(mCommand);
 
                     //Wait for ACK
@@ -60,7 +64,7 @@ public class SettingsClient {static final String TAG = "SettingsClient";
                     }
 
                 } catch (SocketTimeoutException se) {
-                    Log.d(TAG, "Receiving socket on port " + mPort + " timed out");
+                    Log.d(TAG, "Receiving socket on port " + mHostPort + " timed out");
                     mSettinsTransmitted = false;
                 } catch (Exception e) {
                     mSettinsTransmitted = false;
@@ -71,7 +75,7 @@ public class SettingsClient {static final String TAG = "SettingsClient";
                     try{
                         mSocket.close();
                     }catch (IOException e){
-                        Log.d(TAG, "Error closing socket on port " + mPort );
+                        Log.d(TAG, "Error closing socket on port " + mHostPort);
                         e.printStackTrace();
                     }
                 }
@@ -80,6 +84,7 @@ public class SettingsClient {static final String TAG = "SettingsClient";
 
             @Override
             protected void onProgressUpdate(Void... values) {
+                // Invoke callback methods
                 if(mSettinsTransmitted)
                     command.onSuccess(mCommand);
                 else
@@ -94,7 +99,12 @@ public class SettingsClient {static final String TAG = "SettingsClient";
                 super.onPostExecute(result);
             }
         };
-        // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+
+        /*
+            In order to run multiple AsyncTask in parallel, the call to execute them is dependent on
+            build version
+            @ http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+        */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
         else
