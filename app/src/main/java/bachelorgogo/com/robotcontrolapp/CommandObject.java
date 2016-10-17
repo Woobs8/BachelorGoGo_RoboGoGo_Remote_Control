@@ -1,10 +1,5 @@
 package bachelorgogo.com.robotcontrolapp;
 
-
-/**
- * Created by rasmus on 10/13/2016.
- */
-
 /////////////////// Import of Protocol to send/receive //////////////////////////
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;

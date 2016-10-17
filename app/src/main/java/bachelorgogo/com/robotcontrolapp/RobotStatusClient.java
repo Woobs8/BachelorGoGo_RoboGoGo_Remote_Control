@@ -9,9 +9,13 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 
+/*
+    RobotStatusClient class is used to listen for status messages from the robot on the port
+    specified by the constructor port parameter. When a status is received, a local broadcast is
+    made with the received status string included as an extra in the intent.
+ */
 public class RobotStatusClient {
     private final String TAG = "RobotStatusClient";
     private int mPacketSize = 0;
@@ -30,6 +34,10 @@ public class RobotStatusClient {
         mManualStop = false;
     }
 
+    /*
+        This function will listen continuously for status messages asynchronously until stopped by
+        calling the class method stop().
+     */
     public void start() {
         mManualStop = false;
         async_client = new AsyncTask<Void, Void, Void>()
@@ -39,6 +47,7 @@ public class RobotStatusClient {
             {
                 mRunning = true;
                 Log.d(TAG,"Started listening for robot status messages");
+                // cancel() is invoked by the class method stop()
                 while (!isCancelled())
                     listenOnSocket();
 
@@ -54,7 +63,11 @@ public class RobotStatusClient {
             }
         };
         if(!mRunning) {
-            // http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+            /*
+                In order to run multiple AsyncTask in parallel, the call to execute them is dependent on
+                build version
+                @ http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+            */
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
                 async_client.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
             else
@@ -65,6 +78,11 @@ public class RobotStatusClient {
 
     }
 
+    /*
+        This function stops the continuous listening for status messages by invoking the AsyncTask
+        class method cancel(). close() is invoked on the DatagramSocket in order to stop the
+        otherwise blocking read operation.
+     */
     public void stop() {
         mManualStop = true;
         if(async_client != null) {
@@ -73,7 +91,11 @@ public class RobotStatusClient {
         }
     }
 
-    //Will block and listen on socket until message received or timeout reached
+    /*
+        This function will block and listen on a UDP socket until a status message is received or
+        the socket is closed.
+        Received status messages are broadcast.
+     */
     private void listenOnSocket() {
         try {
             Log.d(TAG,"Opening socket on port " + mPort);
@@ -101,11 +123,17 @@ public class RobotStatusClient {
                 LocalBroadcastManager.getInstance(mService.getApplicationContext()).sendBroadcast(notifyActivity);
         } catch (IOException e) {
             if (!mManualStop) {
-                //Log.e(TAG, "Error occurred while listening on port " + mPort);
-                //e.printStackTrace();
+                Log.e(TAG, "Error occurred while listening on port " + mPort);
+                e.printStackTrace();
             } else {
                 Log.d(TAG, "Socket on port " + mPort + " closed manually");
             }
+        // When testing we occasionally reached the application memory limit, when receiving
+        // many packets in a row - presumably due to the system being unable to handle the
+        // processing in time, and the packets accumulating as a result thereof.
+        // In order to handle this we catch the exception, and simply ignore the received packet to
+        // allow the system to recover. Ignoring the packet is not critical as a status message
+        // will be transmitted regularly.
         } catch (OutOfMemoryError me) {
             Log.d(TAG,"Out of memory, received data ignored");
         } finally {

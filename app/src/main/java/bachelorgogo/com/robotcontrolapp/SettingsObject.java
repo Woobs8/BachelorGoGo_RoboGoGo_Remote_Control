@@ -6,6 +6,12 @@ import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
 /////////////////////////////////////////////////////////////////////////////////
 
+/*
+    SettingsObject class is used to pass the settings to be sent to the robot between an activity
+    and the WiFiDirectService.
+    SettingsObject has two callbacks, which can be overridden by the declaring activity, in order
+    to handle success or failure scenarios.
+ */
 public class SettingsObject {
     private String mFormattedString;
     private String mDeviceName;
@@ -49,6 +55,9 @@ public class SettingsObject {
         formatString();
     }
 
+    /*
+        This function returns the current settings as a string formatted to a custom protocol
+     */
     private void formatString() {
         mFormattedString = "";
 
@@ -80,12 +89,12 @@ public class SettingsObject {
         return CMD_ACK;
     }
 
-    // Should be overridden
+    // Invoked by SettingsClient. Should be overridden
     public void onSuccess(String command) {
 
     }
 
-    // Should be overridden
+    // Invoket by SettingsClient. Should be overridden
     public void onFailure(String command) {
 
     }

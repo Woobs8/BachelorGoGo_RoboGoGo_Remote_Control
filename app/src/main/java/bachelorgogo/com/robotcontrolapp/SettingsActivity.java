@@ -1,7 +1,6 @@
 package bachelorgogo.com.robotcontrolapp;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -18,14 +17,21 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-// Adapted from the template Settings Activity and Android doc @ https://developer.android.com/reference/android/preference/PreferenceActivity.html
+/*
+    Adapted from the template Settings Activity and Android doc @ https://developer.android.com/reference/android/preference/PreferenceActivity.html
+    This activity inflates a fragment with the desired layout.
+    In order to register changes on SharedPreferences this activity also implements an
+    onSharedPreferenceChangeListener.
+*/
 public class SettingsActivity extends AppCompatPreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = "SettingsActivity";
 
-    // WifiService stuff
+    // WiFiDirectService related
     private static WiFiDirectService mService;
     private static boolean mBound;
+
+    // SharedPreferences related
     private static boolean mUnsyncedChanges;
     private static PreferenceFragment mPreferenceFragment;
     private static AlertDialog mConfirmationDialog;
@@ -58,7 +64,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             String stringValue = value.toString();
 
             if (preference instanceof ListPreference) {
-                // For list preferences, look up the correct display value in
+                // For ListPreferences, look up the correct display value in
                 // the preference's 'entries' list.
                 ListPreference listPreference = (ListPreference) preference;
                 int index = listPreference.findIndexOfValue(stringValue);
@@ -70,8 +76,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                                 : null);
 
             } else if (preference instanceof EditTextPreference) {
-                // For all other preferences, set the summary to the value's
-                // simple string representation.
+                // For EditText preferences, set the summary to the value's
+                // string representation.
                 preference.setSummary(stringValue);
             }
             return true;
@@ -104,7 +110,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     {
         super.onCreate(savedInstanceState);
         mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        // Create restore point
+        // Create restore point to handle unsaved changes
         if(savedInstanceState != null) {
             Log.d(TAG,"Creating restore point from saved instance");
             mDeviceName = savedInstanceState.getString(DEVICE_NAME_KEY,getString(R.string.robotName));
@@ -120,11 +126,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             mAssistedDrivingMode = mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key), false);
             mUnsyncedChanges = false;
         }
+
         mPreferenceFragment = new PreferenceFragment();
         getFragmentManager().beginTransaction().replace(android.R.id.content, mPreferenceFragment).commit();
         setupActionBar();
         PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
 
+        // AlertDialog warns user about unsaved changes
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AppCompatAlertDialogStyle);
         builder.setTitle(getString(R.string.settings_unsaved_changes_dialog_title));
         builder.setMessage(getString(R.string.settings_unsaved_changes_dialog_message));
@@ -143,9 +151,11 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         bindToService(wifiServiceIntent);
     }
 
+    /*
+        Persisting restore point and unsaved changes flag
+     */
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        //Persisting restore point
         outState.putString(DEVICE_NAME_KEY,mDeviceName);
         outState.putString(VIDEO_QUALITY_KEY,mVideoQualityIndex);
         outState.putBoolean(POWER_MODE_KEY,mPowerSaveMode);
@@ -154,10 +164,16 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         super.onSaveInstanceState(outState);
     }
 
+    /*
+        Listen for changes on SharedPreferences. If any changes occurs on the preferences
+        related to the robot, a flag is set.
+     */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if(!key.equals(getString(R.string.settings_local_picture_storage_key))
-                && !key.equals(getString(R.string.settings_local_video_storage_key))) {
+        if(key.equals(getString(R.string.settings_video_key))
+                || key.equals(getString(R.string.settings_device_name_key))
+                || key.equals(getString(R.string.settings_power_save_mode_key))
+                || key.equals(getString(R.string.settings_assisted_driving_mode_key))) {
             Log.d(TAG,"Robot preferences changed");
             mUnsyncedChanges = true;
             upload_btn.setSummary(getString(R.string.settings_not_synced));
@@ -170,6 +186,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         super.onDestroy();
     }
 
+    /*
+        Action bar back button
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
@@ -184,6 +203,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         return super.onOptionsItemSelected(item);
     }
 
+    /*
+        Android device back button
+     */
     @Override
     public void onBackPressed() {
         if(mUnsyncedChanges)
@@ -192,6 +214,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             finish();
     }
 
+    /*
+        Sets up the action bar and enables the back button on the action bar
+     */
     private void setupActionBar() {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -201,6 +226,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     }
 
+    /*
+        This function restores preferences from a restore point.
+        This is used to restore preference when the user exits with unsaved changes.
+     */
     public void restorePreferences() {
         if (mUnsyncedChanges) {
             Log.d(TAG,"Restoring preferences");
@@ -213,7 +242,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     }
 
-    /** Defines callbacks for service binding, passed to bindService() */
+    /* Defines callbacks for service binding, passed to bindService() */
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
@@ -231,11 +260,17 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     };
 
+    /*
+        Binds to the WiFiDirectService
+     */
     protected void bindToService(Intent service) {
         Log.d("bindToService", "called");
         bindService(service, mConnection, 0);
     }
 
+    /*
+        Unbinds from the WiFiDirectService
+     */
     protected void unbindFromService() {
         // Unbind from the service
         if (mBound) {
@@ -243,6 +278,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     }
 
+    /*
+        This PreferenceFragment is inflated with desired layout for each header in the SettingsActivity.
+     */
     public static class PreferenceFragment extends android.preference.PreferenceFragment
     {
         @Override
@@ -253,6 +291,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             bindPreferenceSummaryToValue(findPreference("device_name_preference"));
             bindPreferenceSummaryToValue(findPreference("video_preference"));
 
+            /*
+                SettingsObject holds the object to be transmitted to the robot.
+                Callbacks should be overridden to handle success or failure scenarios
+             */
             mSettings = new SettingsObject() {
                 @Override
                 public void onSuccess(String command) {
@@ -270,11 +312,17 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 }
             };
 
+            // Button to save preferences on the device
             upload_btn = (Preference)findPreference(getString(R.string.settings_upload_btn_key));
             upload_btn.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(Preference preference) {
+                    // Button is disabled until SettingsClient invokes a callback signaling
+                    // either success or failure to transmit the settings
                     upload_btn.setEnabled(false);
+
+                    // Set the SettingsObject with the current values stored in SharedPreference
+                    // and invoke the service to send the settings to the robot
                     mSettings.setSettings(mSharedPrefs.getString(getString(R.string.settings_device_name_key),getString(R.string.robotName)),
                             mSharedPrefs.getString(getString(R.string.settings_video_key),"1"),
                             mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false),
