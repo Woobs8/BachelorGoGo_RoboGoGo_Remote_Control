@@ -43,28 +43,28 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     public final static String DEVICE_OBJECTS_LIST = "mDeviceObjects";
 
     // WifiService stuff
-    WiFiDirectService mService;
+    private WiFiDirectService mService;
     boolean mBound;
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
-    Handler delayBindToServiceHandler = new Handler();
-    Runnable delayBindToServiceRunnable;
-    private final int DELAY_SERVICE_BIND_MS = 2000;
-    private final int RESTART_LISTENING_TIMER_MS = 30000;
+    private Handler delayBindToServiceHandler = new Handler();
+    private Runnable delayBindToServiceRunnable;
+    private final int DELAY_SERVICE_BIND_MS = 3000;
+    private final int RESTART_LISTENING_TIMER_MS = 15000;
 
-    IntentFilter mIntentFilter;
+    private IntentFilter mIntentFilter;
 
     // UI Elements
-    ListView lstViewDevices;
+    private ListView lstViewDevices;
     private RelativeLayout mProgress;
 
-    ArrayList<DeviceObject> mDeviceObjects;
-    DeviceObjectAdapter mDeviceObjectAdapter;
+    private ArrayList<DeviceObject> mDeviceObjects;
+    private DeviceObjectAdapter mDeviceObjectAdapter;
 
     private SharedPreferences mSharedPrefs;
 
     // Toasts
-    Toast mToast;
+    private Toast mToast;
 
     private String mSelectedDeviceAddress;
     private String mDeviceName;
@@ -125,6 +125,22 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         // Progress spinner view
         mProgress = (RelativeLayout)findViewById(R.id.progressBarView);
 
+
+        // After we have been bound
+        // Reset after a few seconds to make sure broadcasting from car started before listening from device
+        // Afterwards every 30 seconds we want to Restart Listening in the service
+        delayBindToServiceRunnable = new Runnable()
+        {
+            public void run()
+            {
+                if(!mConnectionAttempted) {
+                    Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
+                    restartPeerListening(false);
+                    delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
+                }
+            }
+        };
+
     }
 
     @Override
@@ -161,22 +177,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         // delay Hack to allow robot to register on network before service start looking for it
         bindToService(wifiServiceIntent);
-
-        // After we have been bound
-        // Reset after a few seconds to make sure broadcasting from car started before listening from device
-        // Afterwards every 30 seconds we want to Restart Listening in the service
-        delayBindToServiceRunnable = new Runnable()
-        {
-            public void run()
-            {
-                if(mConnectionAttempted) {
-                    Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
-                    restartPeerListening(false);
-                    delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
-                }
-
-            }
-        };
         delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,DELAY_SERVICE_BIND_MS);
 
 
@@ -280,8 +280,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                                 mToast.show();
                                 mService.disconnectFromDevice();
                                 mConnectionAttempted = false;
+                                restartPeerListening(true);
                             }
-                            restartPeerListening(true);
                         }
                         break;
                     case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
@@ -301,7 +301,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     private void UpdateDeviceList(String deviceName, String deviceAddress) {
         DeviceObject newDeviceObject = new DeviceObject(deviceName, deviceAddress);
         int adapterLength = mDeviceObjectAdapter.getCount();
-        Log.d(TAG, "UpdateDeviceList: adapterLength " + adapterLength );
         if(adapterLength > 0) {
             for (int i = 0; i < adapterLength; i++) {
                 Log.d(TAG, "UpdateDeviceList: checking Device exists");
@@ -332,9 +331,9 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     // disable UI-inputs and attempt connection to robot by calling connect on WiFiDirectService
     @Override
     public void onDialogPositiveClick(AppCompatDialogFragment dialog) {
-        for (int i = 0; i < lstViewDevices.getChildCount();i++){
+        if(lstViewDevices.getChildCount() > 0){
             mDeviceObjectAdapter.disableAll();
-            Log.d(TAG, "onDialogPositiveClick: List item "+ i +" disabled");
+            Log.d(TAG, "onDialogPositiveClick: List item disabled");
         }
         lstViewDevices.setAlpha((float)(0.5));
         mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
