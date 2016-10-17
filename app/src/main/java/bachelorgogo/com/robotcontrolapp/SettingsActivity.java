@@ -24,11 +24,29 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     private static final String TAG = "SettingsActivity";
 
     // WifiService stuff
-    static WiFiDirectService mService;
-    static boolean mBound;
-    static boolean mUnsyncedChanges;
-    static PreferenceFragment mPreferenceFragment;
-    static AlertDialog mConfirmationDialog;
+    private static WiFiDirectService mService;
+    private static boolean mBound;
+    private static boolean mUnsyncedChanges;
+    private static PreferenceFragment mPreferenceFragment;
+    private static AlertDialog mConfirmationDialog;
+    private static SharedPreferences mSharedPrefs;
+
+    //UI elements
+    private static SettingsObject mSettings;
+    private static Preference upload_btn;
+
+    //Restore points
+    private static String mDeviceName;
+    private static String mVideoQualityIndex;
+    private static boolean mPowerSaveMode;
+    private static boolean mAssistedDrivingMode;
+
+    //saveInstanceState keys
+    private String DEVICE_NAME_KEY = "device_name_key";
+    private String VIDEO_QUALITY_KEY = "video_quality_key";
+    private String POWER_MODE_KEY = "power_mode_key";
+    private String DRIVE_MODE_KEY = "drive_mode_key";
+    private String UNSYNCED_CHANGES_KEY = "unsynced_changes_key";
 
     /**
      * A preference value change listener that updates the preference's summary
@@ -85,11 +103,27 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     protected void onCreate(final Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        // Create restore point
+        if(savedInstanceState != null) {
+            Log.d(TAG,"Creating restore point from saved instance");
+            mDeviceName = savedInstanceState.getString(DEVICE_NAME_KEY,getString(R.string.robotName));
+            mVideoQualityIndex = savedInstanceState.getString(VIDEO_QUALITY_KEY,"Unknown");
+            mPowerSaveMode = savedInstanceState.getBoolean(POWER_MODE_KEY,false);
+            mAssistedDrivingMode = savedInstanceState.getBoolean(DRIVE_MODE_KEY,false);
+            mUnsyncedChanges = savedInstanceState.getBoolean(UNSYNCED_CHANGES_KEY,false);
+        } else {
+            Log.d(TAG,"Creating restore point");
+            mDeviceName = mSharedPrefs.getString(getString(R.string.settings_device_name_key), getString(R.string.robotName));
+            mVideoQualityIndex = mSharedPrefs.getString(getString(R.string.settings_video_key), "1");
+            mPowerSaveMode = mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key), false);
+            mAssistedDrivingMode = mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key), false);
+            mUnsyncedChanges = false;
+        }
         mPreferenceFragment = new PreferenceFragment();
         getFragmentManager().beginTransaction().replace(android.R.id.content, mPreferenceFragment).commit();
         setupActionBar();
         PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
-        mUnsyncedChanges = false;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AppCompatAlertDialogStyle);
         builder.setTitle(getString(R.string.settings_unsaved_changes_dialog_title));
@@ -97,8 +131,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         builder.setPositiveButton(getString(R.string.settings_unsaved_changes_dialog_ok_btn_text), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                mPreferenceFragment.restorePreferences();
-                onBackPressed();
+                restorePreferences();
+                finish();
             }
         });
         builder.setNegativeButton(getString(R.string.settings_unsaved_changes_dialog_cancel_btn_text),null);
@@ -110,17 +144,23 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.d(TAG,"Preferences changed");
-        mUnsyncedChanges = true;
+    protected void onSaveInstanceState(Bundle outState) {
+        //Persisting restore point
+        outState.putString(DEVICE_NAME_KEY,mDeviceName);
+        outState.putString(VIDEO_QUALITY_KEY,mVideoQualityIndex);
+        outState.putBoolean(POWER_MODE_KEY,mPowerSaveMode);
+        outState.putBoolean(DRIVE_MODE_KEY,mAssistedDrivingMode);
+        outState.putBoolean(UNSYNCED_CHANGES_KEY,mUnsyncedChanges);
+        super.onSaveInstanceState(outState);
     }
 
-    private void setupActionBar() {
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            // Show the Up button in the action bar.
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle("Settings");
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if(!key.equals(getString(R.string.settings_local_picture_storage_key))
+                && !key.equals(getString(R.string.settings_local_video_storage_key))) {
+            Log.d(TAG,"Robot preferences changed");
+            mUnsyncedChanges = true;
+            upload_btn.setSummary(getString(R.string.settings_not_synced));
         }
     }
 
@@ -138,10 +178,39 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 if(mUnsyncedChanges)
                     mConfirmationDialog.show();
                 else
-                    onBackPressed();
+                    finish();
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(mUnsyncedChanges)
+            mConfirmationDialog.show();
+        else
+            finish();
+    }
+
+    private void setupActionBar() {
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            // Show the Up button in the action bar.
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle("Settings");
+        }
+    }
+
+    public void restorePreferences() {
+        if (mUnsyncedChanges) {
+            Log.d(TAG,"Restoring preferences");
+            SharedPreferences.Editor editor = mSharedPrefs.edit();
+            editor.putString(getString(R.string.settings_device_name_key), mDeviceName);
+            editor.putString(getString(R.string.settings_video_key), mVideoQualityIndex);
+            editor.putBoolean(getString(R.string.settings_power_save_mode_key), mPowerSaveMode);
+            editor.putBoolean(getString(R.string.settings_assisted_driving_mode_key), mAssistedDrivingMode);
+            editor.commit();
+        }
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -164,7 +233,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
 
     protected void bindToService(Intent service) {
         Log.d("bindToService", "called");
-        bindService(service, mConnection, 0/*Context.BIND_AUTO_CREATE*/);
+        bindService(service, mConnection, 0);
     }
 
     protected void unbindFromService() {
@@ -176,15 +245,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
 
     public static class PreferenceFragment extends android.preference.PreferenceFragment
     {
-        private SettingsObject mSettings;
-        private SharedPreferences mSharedPrefs;
-        private Preference upload_btn;
-
-        private String mDeviceName;
-        private String mVideoQualityIndex;
-        private boolean mPowerSaveMode;
-        private boolean mAssistedDrivingMode;
-
         @Override
         public void onCreate(final Bundle savedInstanceState)
         {
@@ -192,15 +252,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             addPreferencesFromResource(R.xml.preference_screen);
             bindPreferenceSummaryToValue(findPreference("device_name_preference"));
             bindPreferenceSummaryToValue(findPreference("video_preference"));
-
-            mUnsyncedChanges = false;
-
-            mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            // Create restore point
-            mDeviceName = mSharedPrefs.getString(getString(R.string.settings_device_name_key),getString(R.string.robotName));
-            mVideoQualityIndex = mSharedPrefs.getString(getString(R.string.settings_video_key),"1");
-            mPowerSaveMode = mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false);
-            mAssistedDrivingMode = mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false);
 
             mSettings = new SettingsObject() {
                 @Override
@@ -233,24 +284,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     return true;
                 }
             });
-        }
-
-        public void restorePreferences() {
-            if (mUnsyncedChanges) {
-                Log.d(TAG,"Restoring preferences");
-                SharedPreferences.Editor editor = mSharedPrefs.edit();
-                editor.putString(getString(R.string.settings_device_name_key), mDeviceName);
-                editor.putString(getString(R.string.settings_video_key), mVideoQualityIndex);
-                editor.putBoolean(getString(R.string.settings_power_save_mode_key), mPowerSaveMode);
-                editor.putBoolean(getString(R.string.settings_assisted_driving_mode_key), mAssistedDrivingMode);
-                editor.commit();
-            }
-        }
-
-        @Override
-        public void onDestroy() {
-            restorePreferences();
-            super.onDestroy();
         }
     }
 }
