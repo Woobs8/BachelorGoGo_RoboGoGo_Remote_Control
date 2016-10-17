@@ -23,6 +23,9 @@ import android.widget.TextView;
  * Created by MadsNKjaersgaard on 06-10-2016.
  */
 
+// Dialog to show to user
+    // Adapted from the documentation:
+    // https://developer.android.com/guide/topics/ui/dialogs.html
 public class ConnectDialogFragment extends AppCompatDialogFragment {
     private final String TAG = "ConnectDialogFragment";
     private String mdeviceName = "test";
@@ -87,7 +90,6 @@ public class ConnectDialogFragment extends AppCompatDialogFragment {
 
         //return super.onCreateDialog(savedInstanceState);
         return builder.create();
-        //return super.onCreateDialog(savedInstanceState);
     }
 
     @Override

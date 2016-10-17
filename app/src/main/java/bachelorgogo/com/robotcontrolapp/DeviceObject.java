@@ -7,6 +7,7 @@ import android.os.Parcelable;
  * Created by THP on 04-10-2016.
  */
 
+// Class to hold robot objects
 /* memberfunctions regarding parcableity adapted from the android documentation
 - https://developer.android.com/reference/android/os/Parcelable.html */
 
