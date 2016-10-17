@@ -689,6 +689,8 @@ public class WiFiDirectService extends Service {
                             }
                         });
                     }
+                } else if (networkState.isConnectedOrConnecting()) {
+                    Log.d(TAG,"Connection being established");
                 }
                 else {
                     Log.d(TAG,"No connection established");
