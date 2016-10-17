@@ -50,6 +50,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     Handler delayBindToServiceHandler = new Handler();
     Runnable delayBindToServiceRunnable;
     private final int DELAY_SERVICE_BIND_MS = 2000;
+    private final int RESTART_LISTENING_TIMER_MS = 30000;
 
     IntentFilter mIntentFilter;
 
@@ -162,9 +163,28 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             public void run()
             {
                 bindToService(wifiServiceIntent);
+                // After we have been bound
+                // Every 30 seconds we want to Restart Listening in the service
+                delayBindToServiceRunnable = new Runnable()
+                {
+                    public void run()
+                    {
+                        if(mConnectionAttempted) {
+                            Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
+                            restartPeerListening(false);
+                            delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
+                        }
+
+                    }
+                };
+                delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,RESTART_LISTENING_TIMER_MS);
+
             }
         };
         delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,DELAY_SERVICE_BIND_MS);
+
+        // Change the runnable to Refresh Listening every 30 seconds
+
 
         super.onResume();
     }
@@ -191,7 +211,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             case R.id.action_update:
                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_refreshing_device, Toast.LENGTH_SHORT);
                 mToast.show();
-                restartPeerListening();
+                restartPeerListening(true);
         }
         return super.onOptionsItemSelected(item);
     }
@@ -264,7 +284,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                                 mService.disconnectFromDevice();
                                 mConnectionAttempted = false;
                             }
-                            restartPeerListening();
+                            restartPeerListening(true);
                         }
                         break;
                     case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
@@ -334,9 +354,10 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     }
 
     // Clears available robot peers and restarts peer search in WIFIDirectService
-    private void restartPeerListening(){
+    private void restartPeerListening(boolean clearAdapter){
         if(mService != null) {
-            mDeviceObjectAdapter.clear();
+            if(clearAdapter)
+                mDeviceObjectAdapter.clear();
             mService.removeListener(true, false);
             mService.addListener(true, false);
             lstViewDevices.setAlpha((float)(1));
