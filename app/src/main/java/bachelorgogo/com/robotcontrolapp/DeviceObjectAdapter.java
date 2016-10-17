@@ -16,6 +16,9 @@ import java.util.ArrayList;
  * Created by THP on 04-10-2016.
  */
 
+// Adapter to let DeviceObjects in listview
+    // Adapted from android docs: https://developer.android.com/guide/topics/ui/layout/listview.html
+    // and: https://developer.android.com/reference/android/widget/Adapter.html
 public class DeviceObjectAdapter extends ArrayAdapter<DeviceObject> {
     TextView txtViewName;
     private SparseBooleanArray enabledItems = new SparseBooleanArray();

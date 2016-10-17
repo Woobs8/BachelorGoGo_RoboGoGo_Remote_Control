@@ -14,6 +14,7 @@ import android.widget.TextView;
  * Created by MadsNKjaersgaard on 14-10-2016.
  */
 
+// Adapted from android doc: https://developer.android.com/guide/topics/ui/dialogs.html
 public class DeviceInfoDialogFragment extends AppCompatDialogFragment {
 
     private String mDeviceMac = "unknown";

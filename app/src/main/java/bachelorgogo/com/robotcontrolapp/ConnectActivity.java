@@ -1,13 +1,10 @@
 package bachelorgogo.com.robotcontrolapp;
 
-//import android.app.DialogFragment;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatDialogFragment;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -15,7 +12,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -29,7 +25,6 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -78,11 +73,14 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connect);
 
+        // Get shared preferences
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         //Start Wifi Service
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         startService(wifiServiceIntent);
 
-        // Initialize list of devices, adapter and attach adapter to listview
+        // Get saved instance state
         if(savedInstanceState != null) {
             mDeviceObjects = savedInstanceState.getParcelableArrayList(DEVICE_OBJECTS_LIST);
         }
@@ -90,16 +88,18 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             mDeviceObjects = new ArrayList<DeviceObject>();
         }
 
-        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-
+        // Get new adapter and find listview
         mDeviceObjectAdapter = new DeviceObjectAdapter(ConnectActivity.this, mDeviceObjects);
         lstViewDevices = (ListView)findViewById(R.id.lstViewAvailRobots);
 
+        // set a progress spinner when listview is empty
         View empty = getLayoutInflater().inflate(R.layout.connect_spinner,null,false);
         addContentView(empty, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT));
         lstViewDevices.setEmptyView(empty);
 
+        // set adapter for listview
         lstViewDevices.setAdapter(mDeviceObjectAdapter);
+        // onItemClickListener for listView - show dialog on item click
         lstViewDevices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -137,7 +137,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
     @Override
     protected void onDestroy() {
-
+        // make sure service is stopped when app is shut down
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         stopService(wifiServiceIntent);
         super.onDestroy();
@@ -146,15 +146,17 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume Called");
+        // Intent filter with desired actions
         mIntentFilter = new IntentFilter();
         mConnectionAttempted = false;
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED);
-
+        // register local broadcastReceiver
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
         final Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
+        // delay Hack to allow robot to register on network before service start looking for it
         delayBindToServiceRunnable = new Runnable()
         {
             public void run()
@@ -169,10 +171,12 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
+        // save robot objects
         outState.putParcelableArrayList(DEVICE_OBJECTS_LIST, mDeviceObjects);
         super.onSaveInstanceState(outState);
     }
 
+    // Actionbar menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -180,6 +184,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         return super.onCreateOptionsMenu(menu);
     }
 
+    // callback on selected actionbar menu items
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -201,7 +206,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
             WiFiDirectService.LocalBinder binder = (WiFiDirectService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            //Add peer discovery listener
+            //Add peer discovery listener in WiFiDirectService
             mService.addListener(true,false);
         }
 
@@ -220,7 +225,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     protected void unbindFromService() {
         // Unbind from the service
         if (mBound) {
-            //Remove peer discovery listener
+            //Remove peer discovery listener in WiFiDirectServiec
             mService.removeListener(true,false);
             unbindService(mConnection);
         }
@@ -234,6 +239,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                 boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
                 switch (intent.getAction()) {
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
+                        // React on connection succes or fault
                         Log.d(TAG,"Connection status changed to: " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
@@ -244,6 +250,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             editor.putString(getString(R.string.settings_device_name_key), mDeviceName);
                             editor.putString(getString(R.string.settings_device_MAC_address_key), mSelectedDeviceAddress);
                             editor.commit();
+                            // Start control activity when connected to robot
                             Intent startControlActivity = new Intent(ConnectActivity.this, ControlActivity.class);
                             startActivity(startControlActivity);
                         }
@@ -261,6 +268,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                         }
                         break;
                     case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
+                        // update listview with available robot peers
                         String deviceName = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_NAME_KEY);
                         String deviceAddress = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_ADDRESS_KEY);
                         if(deviceName != null && deviceAddress != null) {
@@ -272,6 +280,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         }
     };
 
+    // Updates listview with new robot peer
     private void UpdateDeviceList(String deviceName, String deviceAddress) {
         DeviceObject newDeviceObject = new DeviceObject(deviceName, deviceAddress);
         int adapterLength = mDeviceObjectAdapter.getCount();
@@ -292,6 +301,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         }
     }
 
+    // Creates new instant of ConnectDialogFragment and shows it
     protected void showConnectDialog(String name, String address) {
         ConnectDialogFragment dialog = new ConnectDialogFragment();
         Bundle args = new Bundle();
@@ -302,6 +312,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     }
 
     // onClick listener implemented for ConnectDialogFragment
+    // disable UI-inputs and attempt connection to robot by calling connect on WiFiDirectService
     @Override
     public void onDialogPositiveClick(AppCompatDialogFragment dialog) {
         for (int i = 0; i < lstViewDevices.getChildCount();i++){
@@ -315,12 +326,14 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mService.connectToDevice(mSelectedDeviceAddress);
     }
 
+    // callBack when ConnectDialog is cancelled
     @Override
     public void onDialogCancelled() {
         Log.d(TAG,"Screen orientation unlocked");
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
     }
 
+    // Clears available robot peers and restarts peer search in WIFIDirectService
     private void restartPeerListening(){
         if(mService != null) {
             mDeviceObjectAdapter.clear();
