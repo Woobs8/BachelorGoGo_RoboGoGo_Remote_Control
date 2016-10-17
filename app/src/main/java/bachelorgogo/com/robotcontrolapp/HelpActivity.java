@@ -17,13 +17,11 @@ public class HelpActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-
-        // Inflate/Get the Layout
         setContentView(R.layout.help_activity);
+
+        // Make sure we have a Back Button
         ActionBar actionbar = getSupportActionBar();
         actionbar.setDisplayHomeAsUpEnabled(true);
-
-
     }
 
     @Override
