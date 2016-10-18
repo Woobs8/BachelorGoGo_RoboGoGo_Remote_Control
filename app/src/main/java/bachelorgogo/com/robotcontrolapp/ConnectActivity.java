@@ -51,7 +51,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     private Runnable connectionTimeoutRunnable;
     private final int DELAY_SERVICE_BIND_MS = 3000;
     private final int RESTART_LISTENING_TIMER_MS = 15000;
-    private final int CONNECTION_ATTEMPT_TIMEOUT = 31000;   //31 sec * 1000 msec
+    private final int CONNECTION_ATTEMPT_TIMEOUT = 35000;   //35 sec * 1000 msec
 
     private IntentFilter mIntentFilter;
 
@@ -292,6 +292,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             //Unlock screen orientation
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             if(mConnectionAttempted) {
+                                if (connectionTimeoutRunnable != null)
+                                    restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
                                 mService.disconnectFromDevice();
