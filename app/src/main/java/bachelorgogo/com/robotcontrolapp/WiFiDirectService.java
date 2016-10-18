@@ -364,6 +364,11 @@ public class WiFiDirectService extends Service {
                 public void onFailure(int reason) {
                     //failure logic
                     Log.d(TAG, "Error attempting to connect to " + deviceAddress);
+
+                    // Broadcast to inform listeners about failure to connect
+                    Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
+                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
                 }
             });
         } else {
