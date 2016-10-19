@@ -12,7 +12,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -23,7 +22,6 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
@@ -80,6 +78,8 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     private boolean mBound;
     private boolean mConnected = false;
     private StatusMessage mStatus = new StatusMessage("Default");
+    private String mDeviceAddress;
+    private int mDeviceVideoPort = -1;
 
         // Object To handle sending Commands via WiFi
     private CommandObject mCommandObject = new CommandObject(){
@@ -144,9 +144,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         CameraButtonSetup();
 
         // Get the views to Handle Streaming control switch clicks.
-        // and implement the functionality to send that we want streaming to start
-        // Only Development functionality is implemented
-        // TODO - streaming button control commands are NOT send due to Camera streaming not yet implemented
         StreamSwitchSetup();
 
         return mLayout;
@@ -182,7 +179,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     public void onPause() {
 
         pauseWiFiDirect();
-
         super.onPause();
     }
 
@@ -378,34 +374,37 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         mVideoView.setVisibility(VideoView.GONE);
 
         // If We Receive a Switch Event we will start or stop the stream of video
-        // Video is not yet implemented on the Robot thus development code has been inserted
-        // to show it working.
         mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Log.d("STREAM", "onCheckedChanged: " + isChecked);
 
-                // If the developers device is on the Internet and the development flag is set
-                // A Video Will be shown if the developer set the switch On/True.
-                // Stream is stopped if set to false
-                if(DEVELOPING)
-                {
-                    Log.d("STREAM", "onCheckedChanged: " + isChecked);
-
-                    // Hardcoded link to a Video to stream
-                    String path="http://clips.vorwaerts-gmbh.de/VfE_html5.mp4";
-                    if(isChecked){
-                        Uri uri=Uri.parse(path);
+                if (isChecked) {
+                    if(mDeviceAddress != null && mDeviceVideoPort>0) {
+                        //String path="http://clips.vorwaerts-gmbh.de/VfE_html5.mp4";
+                        String path = "http://" + mDeviceAddress + ":" + Integer.toString(mDeviceVideoPort); //192.168.49.10:6000;
+                        Log.d(TAG,"Starting video stream from: " + path);
+                        Uri uri = Uri.parse(path);
                         mVideoView.setVideoURI(uri);
                         mVideoView.setVisibility(VideoView.VISIBLE);
+                        //Restart when done
+                        mVideoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                mVideoView.start();
+                            }
+                        });
                         mVideoView.start();
                         // Make sure that we Do NOT play audio received.
                         // No audio should be received from the robot
                         mVideoView.setOnPreparedListener(PreparedListener);
+                    } else {
+                        Toast.makeText(mContext, R.string.text_video_unavailable, Toast.LENGTH_SHORT).show();
+                        mSwitch.setChecked(false);
                     }
-                    else{
-                        mVideoView.stopPlayback();
-                        mVideoView.setVisibility(VideoView.GONE);
-                    }
+                } else {
+                    mVideoView.stopPlayback();
+                    mVideoView.setVisibility(VideoView.GONE);
                 }
             }
         });
@@ -430,7 +429,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             }
         }
     };
-
 
     private void settingsIconsSetup() {
         // Get Shared Preferences
@@ -491,6 +489,8 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             mService = binder.getService();
             mBound = true;
             mService.addListener(false, true);
+            mDeviceAddress = mService.getDeviceIP();
+            mDeviceVideoPort = mService.getdeviceHTTPPort();
         }
 
         @Override
