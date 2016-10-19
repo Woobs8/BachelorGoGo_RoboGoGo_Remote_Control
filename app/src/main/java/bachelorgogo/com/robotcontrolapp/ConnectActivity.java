@@ -23,7 +23,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -47,10 +46,12 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     boolean mBound;
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
-    private Handler delayBindToServiceHandler = new Handler();
-    private Runnable delayBindToServiceRunnable;
+    private Handler restartPeerListeningHandler = new Handler();
+    private Runnable restartPeerListenerRunnable;
+    private Runnable connectionTimeoutRunnable;
     private final int DELAY_SERVICE_BIND_MS = 3000;
     private final int RESTART_LISTENING_TIMER_MS = 15000;
+    private final int CONNECTION_ATTEMPT_TIMEOUT = 35000;   //35 sec * 1000 msec
 
     private IntentFilter mIntentFilter;
 
@@ -129,18 +130,27 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         // After we have been bound
         // Reset after a few seconds to make sure broadcasting from car started before listening from device
         // Afterwards every 30 seconds we want to Restart Listening in the service
-        delayBindToServiceRunnable = new Runnable()
+        restartPeerListenerRunnable = new Runnable()
         {
             public void run()
             {
                 if(!mConnectionAttempted) {
-                    Log.d(TAG, "delayBindToServiceRunnable run: Restart Listening without list clear ");
+                    Log.d(TAG, "restartPeerListenerRunnable run: Restart Listening without list clear ");
                     restartPeerListening(false);
-                    delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable, RESTART_LISTENING_TIMER_MS);
+                    restartPeerListeningHandler.postDelayed(restartPeerListenerRunnable, RESTART_LISTENING_TIMER_MS);
                 }
             }
         };
 
+        connectionTimeoutRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Connection attempt timed out");
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                Toast.makeText(mService, R.string.text_Connection_failed, Toast.LENGTH_SHORT).show();
+                restartPeerListening(true);
+            }
+        };
     }
 
     @Override
@@ -149,8 +159,10 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
         if(mToast != null)
             mToast.cancel();
-        if (delayBindToServiceRunnable != null)
-            delayBindToServiceHandler.removeCallbacks(delayBindToServiceRunnable);
+        if (restartPeerListenerRunnable != null)
+            restartPeerListeningHandler.removeCallbacks(restartPeerListenerRunnable);
+        if (connectionTimeoutRunnable != null)
+            restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onPause();
     }
 
@@ -159,6 +171,10 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         // make sure service is stopped when app is shut down
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         stopService(wifiServiceIntent);
+        if (restartPeerListenerRunnable != null)
+            restartPeerListeningHandler.removeCallbacks(restartPeerListenerRunnable);
+        if (connectionTimeoutRunnable != null)
+            restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onDestroy();
     }
 
@@ -177,7 +193,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         // delay Hack to allow robot to register on network before service start looking for it
         bindToService(wifiServiceIntent);
-        delayBindToServiceHandler.postDelayed(delayBindToServiceRunnable,DELAY_SERVICE_BIND_MS);
+        restartPeerListeningHandler.postDelayed(restartPeerListenerRunnable,DELAY_SERVICE_BIND_MS);
 
 
         // Change the runnable to Refresh Listening every 30 seconds
@@ -276,6 +292,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             //Unlock screen orientation
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             if(mConnectionAttempted) {
+                                if (connectionTimeoutRunnable != null)
+                                    restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
                                 mService.disconnectFromDevice();
@@ -340,6 +358,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mToast.show();
         mConnectionAttempted = true;
         mService.connectToDevice(mSelectedDeviceAddress);
+        restartPeerListeningHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
     }
 
     // callBack when ConnectDialog is cancelled
