@@ -357,7 +357,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connecting, Toast.LENGTH_LONG);
         mToast.show();
         mConnectionAttempted = true;
-        mService.connectToDevice(mSelectedDeviceAddress);
+        mService.connectToDevice(mSelectedDeviceAddress, mDeviceName);
         restartPeerListeningHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
     }
 

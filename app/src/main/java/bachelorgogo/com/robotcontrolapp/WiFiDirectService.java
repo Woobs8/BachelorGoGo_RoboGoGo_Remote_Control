@@ -77,9 +77,11 @@ public class WiFiDirectService extends Service {
 
 
     // Network related
-    InetAddress mRobotAddress;
-    ServerSocket mServerSocket;
-    Socket mSocket;
+    private InetAddress mDeviceAddress;
+    private ServerSocket mServerSocket;
+    private Socket mSocket;
+    private String mDeviceName;
+    private String mDeviceMAC;
 
     // Network clients
     ControlClient mControlClient;
@@ -88,6 +90,7 @@ public class WiFiDirectService extends Service {
     private int mGroupOwnerPort = 9999;
     private int mHostUDPPort = -1;
     private int mHostTCPPort = -1;
+    private int mHostHTTPPort = 1;
     private int mLocalUDPPort = 4999;
     private int mEstablishConnectionTimeout = 30000; //30 sec * 1000 msec
 
@@ -263,6 +266,28 @@ public class WiFiDirectService extends Service {
         super.onDestroy();
     }
 
+    public boolean isConnected() {
+        return mConnected;
+    }
+
+    public String getDeviceIP() {
+        String tempString = mDeviceAddress.toString();
+        tempString = tempString.replace("/","");
+        return tempString;
+    }
+
+    public String getDeviceName() {
+        return mDeviceName;
+    }
+
+    public String getDeviceMAC() {
+        return mDeviceMAC;
+    }
+
+    public int getdeviceHTTPPort() {
+        return mHostHTTPPort;
+    }
+
     /*
         Initialize the Wi-Fi P2P channel.
     */
@@ -343,11 +368,13 @@ public class WiFiDirectService extends Service {
         addresses supplied by @params.
         The function will invoke the appropriate API method.
     */
-    public void connectToDevice(final String deviceAddress) {
-        if(deviceAddress != null && !deviceAddress.isEmpty()) {
-            Log.d(TAG, "Connecting to device: " + deviceAddress);
+    public void connectToDevice(final String deviceMAC, final String deviceName) {
+        if(deviceMAC != null && !deviceMAC.isEmpty()) {
+            mDeviceMAC = deviceMAC;
+            mDeviceName = deviceName;
+            Log.d(TAG, "Connecting to device: " + deviceMAC);
             WifiP2pConfig config = new WifiP2pConfig();
-            config.deviceAddress = deviceAddress;
+            config.deviceAddress = deviceMAC;
             config.groupOwnerIntent = 15;    // Highest possible = device wants to be group owner
             /*
                 Invoke connect on WifiP2pManager. A successful connection will trigger a
@@ -357,13 +384,13 @@ public class WiFiDirectService extends Service {
                 @Override
                 public void onSuccess() {
                     //success logic
-                    Log.d(TAG, "Successful attempt to connect to " + deviceAddress);
+                    Log.d(TAG, "Successful attempt to connect to " + deviceMAC);
                 }
 
                 @Override
                 public void onFailure(int reason) {
                     //failure logic
-                    Log.d(TAG, "Error attempting to connect to " + deviceAddress);
+                    Log.d(TAG, "Error attempting to connect to " + deviceMAC);
 
                     // Broadcast to inform listeners about failure to connect
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
@@ -646,7 +673,7 @@ public class WiFiDirectService extends Service {
                                                     mServerSocket.setSoTimeout(mEstablishConnectionTimeout);
                                                     Log.d(TAG, "Listening for clients on port " + Integer.toString(mGroupOwnerPort));
                                                     mSocket = mServerSocket.accept();
-                                                    mRobotAddress = mSocket.getInetAddress();
+                                                    mDeviceAddress = mSocket.getInetAddress();
                                                     publishProgress();
                                                     DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
                                                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
@@ -658,7 +685,7 @@ public class WiFiDirectService extends Service {
                                                         mHostUDPPort = hostUDPPort;
                                                     else
                                                         mConnected = false;
-                                                    Log.d(TAG, "UDP client resolved to: " + mRobotAddress + " (port " + mHostUDPPort + ")");
+                                                    Log.d(TAG, "UDP client resolved to: " + mDeviceAddress + " (port " + mHostUDPPort + ")");
 
                                                     //read client TCP port
                                                     dataStr = in.readUTF();
@@ -667,7 +694,16 @@ public class WiFiDirectService extends Service {
                                                         mHostTCPPort = hostTCPPort;
                                                     else
                                                         mConnected = false;
-                                                    Log.d(TAG, "TCP client resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
+                                                    Log.d(TAG, "TCP client resolved to: " + mDeviceAddress + " (port " + mHostTCPPort + ")");
+
+                                                    //read client HTTP server port
+                                                    dataStr = in.readUTF();
+                                                    int hostHTTPPort = Integer.valueOf(dataStr);
+                                                    if (hostHTTPPort > 0 && hostHTTPPort < 9999)
+                                                        mHostHTTPPort = hostHTTPPort;
+                                                    else
+                                                        mConnected = false;
+                                                    Log.d(TAG, "HTTP server resolved to: " + mDeviceAddress + " (port " + mHostHTTPPort + ")");
 
                                                     //Send UDP port to client
                                                     out.writeUTF(Integer.toString(mLocalUDPPort));
@@ -704,8 +740,8 @@ public class WiFiDirectService extends Service {
                                                 // sockets and stop service discovery.
                                                 if(mConnected) {
                                                     Log.d(TAG,"Connection Established");
-                                                    mControlClient = new ControlClient(mRobotAddress, mHostUDPPort);
-                                                    mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
+                                                    mControlClient = new ControlClient(mDeviceAddress, mHostUDPPort);
+                                                    mSettingsClient = new SettingsClient(mDeviceAddress,mHostTCPPort);
                                                     mRobotStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
                                                     stopDiscoveringPeers();
                                                     stopServiceDiscovery();
@@ -728,8 +764,8 @@ public class WiFiDirectService extends Service {
                                      */
                                     } else {
                                         Log.d(TAG,"This device is a client");
-                                        mRobotAddress = info.groupOwnerAddress;
-                                        if (mRobotAddress != null) {
+                                        mDeviceAddress = info.groupOwnerAddress;
+                                        if (mDeviceAddress != null) {
                                             //transmit ip to group owner and exchange ports
                                             AsyncTask<Void, Void, Void> async_transmit_ip = new AsyncTask<Void, Void, Void>() {
                                                 @Override
@@ -742,7 +778,7 @@ public class WiFiDirectService extends Service {
                                                         //Prevent race condition when attempting to
                                                         // connect before owner is accepts incoming connections
                                                         SystemClock.sleep(100);
-                                                        mSocket.connect((new InetSocketAddress(mRobotAddress, mGroupOwnerPort)));
+                                                        mSocket.connect((new InetSocketAddress(mDeviceAddress, mGroupOwnerPort)));
                                                         DataInputStream in = new DataInputStream(mSocket.getInputStream());
                                                         DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
@@ -754,7 +790,7 @@ public class WiFiDirectService extends Service {
                                                         int hostUDPPort = Integer.valueOf(dataStr);
                                                         if (hostUDPPort > 0 && hostUDPPort < 9999)
                                                             mHostUDPPort = hostUDPPort;
-                                                        Log.d(TAG, "UDP host resolved to: " + mRobotAddress + " (port " + mHostUDPPort + ")");
+                                                        Log.d(TAG, "UDP host resolved to: " + mDeviceAddress + " (port " + mHostUDPPort + ")");
 
                                                         //read owner TCP port
                                                         dataStr = in.readUTF();
@@ -763,7 +799,16 @@ public class WiFiDirectService extends Service {
                                                             mHostTCPPort = hostTCPPort;
                                                         else
                                                             mConnected = false;
-                                                        Log.d(TAG, "TCP host resolved to: " + mRobotAddress + " (port " + mHostTCPPort + ")");
+                                                        Log.d(TAG, "TCP host resolved to: " + mDeviceAddress + " (port " + mHostTCPPort + ")");
+
+                                                        //read client HTTP server port
+                                                        dataStr = in.readUTF();
+                                                        int hostHTTPPort = Integer.valueOf(dataStr);
+                                                        if (hostHTTPPort > 0 && hostHTTPPort < 9999)
+                                                            mHostHTTPPort = hostHTTPPort;
+                                                        else
+                                                            mConnected = false;
+                                                        Log.d(TAG, "HTTP server resolved to: " + mDeviceAddress + " (port " + mHostHTTPPort + ")");
 
                                                     } catch (SocketTimeoutException st) {
                                                         Log.d(TAG,"Attempt to establish connection timed out");
@@ -793,8 +838,8 @@ public class WiFiDirectService extends Service {
                                                     // sockets and stop service discovery.
                                                     if(mConnected) {
                                                         Log.d(TAG,"Connection Established");
-                                                        mControlClient = new ControlClient(mRobotAddress, mHostUDPPort);
-                                                        mSettingsClient = new SettingsClient(mRobotAddress,mHostTCPPort);
+                                                        mControlClient = new ControlClient(mDeviceAddress, mHostUDPPort);
+                                                        mSettingsClient = new SettingsClient(mDeviceAddress,mHostTCPPort);
                                                         mRobotStatusClient = new RobotStatusClient(mLocalUDPPort, WiFiDirectService.this);
                                                         stopDiscoveringPeers();
                                                         stopServiceDiscovery();
