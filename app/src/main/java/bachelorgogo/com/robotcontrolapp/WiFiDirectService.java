@@ -67,7 +67,7 @@ public class WiFiDirectService extends Service {
     private boolean mShouldDiscoverPeers = true;
     private int mDiscoverPeersListeners = 0;
     private int mServiceDiscoveryInterval = 120000; //2 min * 60 sec * 1000 msec
-    private final String mNetworkServiceName = "GiantsFTW";
+    private final String mNetworkServiceName = "RoboGoGo";
 
     // Broadcast receiver related
     BroadcastReceiver mReceiver;

@@ -90,7 +90,6 @@ implements TextureView.SurfaceTextureListener {
     private IntentFilter mIntentFilter;
     private WiFiDirectService mService;
     private boolean mBound;
-    private boolean mConnected = false;
     private StatusMessage mStatus = new StatusMessage("Default");
     private String mDeviceAddress;
     private int mDeviceVideoPort = -1;
@@ -153,7 +152,6 @@ implements TextureView.SurfaceTextureListener {
         // Get the views to Handle Camera button Clicks.
         // and implements the functionality when camera
         // button is clicked
-        // Only Development functionality is implemented
         CameraButtonSetup();
 
         // Get the views to Handle Streaming control switch clicks.
@@ -341,6 +339,7 @@ implements TextureView.SurfaceTextureListener {
         mCameraIconImageButton.setVisibility(ImageButton.GONE);
 
         // Set An Onclick listener to Receive if User clicks Button
+        // A short press on the button will take a screenshot of the video stream
         mCameraCircleImageButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -354,17 +353,13 @@ implements TextureView.SurfaceTextureListener {
                     return;
                 }
 
+                // Take a screenshot of the TextureView
                 if(mTextureView != null)
                     saveScreenShot(mTextureView);
-                // If we have set the development flag we can se a log message showing
-                // if we get A Short Click event
-                if(DEVELOPING)
-                {
-                    Log.d(TAG, "onClick: SHORT");
-                    mHandler.removeCallbacks(mHandlertask);
-                }
             }
         });
+        // Currently long click does nothing
+        // TODO: implement burst image feature
         mCameraCircleImageButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -384,6 +379,10 @@ implements TextureView.SurfaceTextureListener {
         });
     }
 
+    /*
+        Implementation of SurfaceTextureListener
+     */
+    // Setup the MediaPlayer when textures are available.
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         Log.d(TAG,"SurfaceTexture available");
@@ -401,6 +400,7 @@ implements TextureView.SurfaceTextureListener {
         Log.d(TAG,"SurfaceTexture size changed");
     }
 
+    // Release the MediaPlayer when textures are destroyed - we no longer need it
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
         Log.d(TAG,"SurfaceTexture destroyed");
@@ -427,6 +427,7 @@ implements TextureView.SurfaceTextureListener {
         }
     }
 
+    // Set up MediaPlayer http stream from the robot.
     private void StreamSwitchSetup()
     {
         // Get the Switch
@@ -448,7 +449,7 @@ implements TextureView.SurfaceTextureListener {
                         Log.d(TAG,"Starting video stream from: " + path);
                         try {
                             mMediaPlayer.setDataSource(path);
-                            mMediaPlayer.prepareAsync();
+                            mMediaPlayer.prepareAsync();    // Asynchronous to avoid blocking UI thread
                             mTextureView.setVisibility(TextureView.VISIBLE);
                             mCameraCircleImageButton.setVisibility(ImageButton.VISIBLE);
                             mCameraIconImageButton.setVisibility(ImageButton.VISIBLE);
@@ -515,6 +516,10 @@ implements TextureView.SurfaceTextureListener {
         }
     }
 
+    /*
+        Capture screenshot from TextureView. This is simple do to since TextureView supplies a
+        getBitmap method. The captured bitmap is then stored on the device.
+     */
     private void saveScreenShot(TextureView v) {
         Log.d(TAG,"Taking Screenshot");
         Bitmap bm = v.getBitmap();
@@ -525,7 +530,11 @@ implements TextureView.SurfaceTextureListener {
         }
     }
 
-    // @http://stackoverflow.com/questions/27435985/how-to-capture-screenshot-of-videoview-when-streaming-video-in-android
+    /*
+        Save a bitmap to external storage. All file operations are done in an AsyncTask to avoid
+        blocking the UI thread.
+        @http://stackoverflow.com/questions/27435985/how-to-capture-screenshot-of-videoview-when-streaming-video-in-android
+     */
     private void saveBitmap(final Bitmap bm) {
         Log.d(TAG,"Saving screenshot");
         final String mPath = Environment.getExternalStorageDirectory().toString()

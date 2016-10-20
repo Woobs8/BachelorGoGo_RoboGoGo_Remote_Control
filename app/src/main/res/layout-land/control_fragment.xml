@@ -35,6 +35,10 @@
         android:layout_marginLeft="@dimen/camera_btn_margin_left"
         />
 
+    <!-- Layout for holding Imagebutton
+        This layout gives the Imagebutton a background to draw "ripple" effect on.
+        This effect was otherwise hidden by the TextureView.
+    -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
