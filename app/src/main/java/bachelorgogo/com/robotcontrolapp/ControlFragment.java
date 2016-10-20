@@ -94,6 +94,9 @@ implements TextureView.SurfaceTextureListener {
     private String mDeviceAddress;
     private int mDeviceVideoPort = -1;
 
+    // Camera parameters
+    private boolean mStorePicturesLocally;
+
         // Object To handle sending Commands via WiFi
     private CommandObject mCommandObject = new CommandObject(){
         @Override
@@ -139,6 +142,8 @@ implements TextureView.SurfaceTextureListener {
         // Inflate/Get the Layout
         mLayout = (RelativeLayout)inflater.inflate(R.layout.control_fragment,null);
         mContext = getActivity().getApplicationContext();
+        // Get Shared Preferences
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
         // Instantiate the Joystick and Setup Functionality to Receive User Inputs
         // In the User Inputs Handler the The Controls Are Send via WiFi to the Robot
@@ -166,6 +171,7 @@ implements TextureView.SurfaceTextureListener {
         // set up Icons to Show if Assisted Drive mode Or/And Power Save Mode is Enabled/Disabled
         // Gets The views and handles the Visibility of the views
         settingsIconsSetup();
+        mStorePicturesLocally = mSharedPrefs.getBoolean(getString(R.string.settings_local_picture_storage_key),false);
         super.onStart();
     }
 
@@ -354,8 +360,10 @@ implements TextureView.SurfaceTextureListener {
                 }
 
                 // Take a screenshot of the TextureView
-                if(mTextureView != null)
+                if(mTextureView != null && mStorePicturesLocally)
                     saveScreenShot(mTextureView);
+
+                //TODO: implement picture storage on robot
             }
         });
         // Currently long click does nothing
@@ -491,8 +499,6 @@ implements TextureView.SurfaceTextureListener {
     };
 
     private void settingsIconsSetup() {
-        // Get Shared Preferences
-        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         // Get the Views To be Showed
         mImagePowerSaveMode = (ImageView)mLayout.findViewById(R.id.imgBatterySaver);
         mImageAssistedDriveMode = (ImageView)mLayout.findViewById(R.id.imgWheel);
@@ -533,6 +539,7 @@ implements TextureView.SurfaceTextureListener {
     /*
         Save a bitmap to external storage. All file operations are done in an AsyncTask to avoid
         blocking the UI thread.
+        TODO: Add a content provider for the taken screenshots
         @http://stackoverflow.com/questions/27435985/how-to-capture-screenshot-of-videoview-when-streaming-video-in-android
      */
     private void saveBitmap(final Bitmap bm) {
@@ -543,8 +550,6 @@ implements TextureView.SurfaceTextureListener {
         AsyncTask saveBitmap = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] params) {
-                String mPath = Environment.getExternalStorageDirectory().toString()
-                        + "/Pictures/" + "RoboGoGo_" + System.currentTimeMillis() + ".png";
                 OutputStream fos = null;
                 File imageFile = new File(mPath);
 
@@ -563,7 +568,7 @@ implements TextureView.SurfaceTextureListener {
 
             @Override
             protected void onPostExecute(Object o) {
-                Toast.makeText(mContext, R.string.text_screenshot_saved + " " + mPath, Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, getString(R.string.text_screenshot_saved) + " " + mPath, Toast.LENGTH_SHORT).show();
                 super.onPostExecute(o);
             }
         };
