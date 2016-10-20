@@ -11,10 +11,10 @@
     android:paddingTop="0dp"
     tools:context="bachelorgogo.com.robotcontrolapp.ControlActivity">
 
-    <VideoView
+    <TextureView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/VideoViewID"/>
+        android:id="@+id/TextureViewID"/>
 
     <ImageButton
         android:layout_width="@dimen/camera_btn_size"

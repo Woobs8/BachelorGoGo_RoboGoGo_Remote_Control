@@ -7,9 +7,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
-import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -17,6 +21,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
@@ -27,9 +33,15 @@ import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
-public class ControlFragment extends android.support.v4.app.Fragment {
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+public class ControlFragment extends android.support.v4.app.Fragment
+implements TextureView.SurfaceTextureListener {
 
     String TAG = "ControlFragment";
 
@@ -43,15 +55,17 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     private TextView BatteryPct;
     private SharedPreferences mSharedPrefs;
     private Switch mSwitch;
-    private VideoView mVideoView;
+    private TextureView mTextureView;
     private ImageView mImagePowerSaveMode;
     private ImageView mImageAssistedDriveMode;
-    private ImageButton mImageButton;
+    private ImageButton mCameraCircleImageButton;
+    private ImageButton mCameraIconImageButton;
     private RelativeLayout mLayout;
     private RelativeLayout layout_joystick;
     private TextView AngleTxt;
     private TextView PowerTxt;
     private ProgressBar mProgressBar;
+    private MediaPlayer mMediaPlayer;
 
     // Camera Parameters
     private boolean WASLONGCLICK = false;
@@ -140,7 +154,6 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         // and implements the functionality when camera
         // button is clicked
         // Only Development functionality is implemented
-        // TODO - streaming Camera streaming not yet implemented!
         CameraButtonSetup();
 
         // Get the views to Handle Streaming control switch clicks.
@@ -151,7 +164,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     @Override
     public void onStart() {
-        Log.d(TAG, "onStart");
+        Log.d(TAG,"started");
         // set up Icons to Show if Assisted Drive mode Or/And Power Save Mode is Enabled/Disabled
         // Gets The views and handles the Visibility of the views
         settingsIconsSetup();
@@ -166,24 +179,26 @@ public class ControlFragment extends android.support.v4.app.Fragment {
 
     @Override
     public void onResume() {
+        Log.d(TAG,"Resumed");
         // Set up WiFi Direct
         // Registering Broadcast Receiver to Receive messages from the WiFi-Service
         // Binds to The service to be able to send Control Commands
         // and receive StatusMessages
         setupWiFiDirect();
-
         super.onResume();
     }
 
     @Override
     public void onPause() {
-
+        Log.d(TAG,"Paused");
         pauseWiFiDirect();
+        mTextureView.setVisibility(TextureView.VISIBLE);
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG,"Destroyed");
         unbindFromService();
         super.onDestroy();
     }
@@ -319,12 +334,14 @@ public class ControlFragment extends android.support.v4.app.Fragment {
     private void CameraButtonSetup()
     {
         // Get The ImageButton
-        mImageButton = (ImageButton) mLayout.findViewById(R.id.camera_circle);
+        mCameraCircleImageButton = (ImageButton) mLayout.findViewById(R.id.camera_circle);
+        mCameraCircleImageButton.setVisibility(ImageButton.GONE);
+
+        mCameraIconImageButton = (ImageButton) mLayout.findViewById(R.id.camera_icon);
+        mCameraIconImageButton.setVisibility(ImageButton.GONE);
 
         // Set An Onclick listener to Receive if User clicks Button
-        // Real Camera Functionality have NOT been implemented due to
-        // WiFi Camera Stream is not implemented yet!
-        mImageButton.setOnClickListener(new View.OnClickListener()
+        mCameraCircleImageButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
@@ -336,6 +353,9 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                     WASLONGCLICK = false;
                     return;
                 }
+
+                if(mTextureView != null)
+                    saveScreenShot(mTextureView);
                 // If we have set the development flag we can se a log message showing
                 // if we get A Short Click event
                 if(DEVELOPING)
@@ -345,7 +365,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
                 }
             }
         });
-        mImageButton.setOnLongClickListener(new View.OnLongClickListener() {
+        mCameraCircleImageButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 // If we have set the development flag we can se a log message showing
@@ -364,47 +384,92 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         });
     }
 
+    @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        Log.d(TAG,"SurfaceTexture available");
+        Surface s = new Surface(surface);
+
+        setUpMediaplayer(s);
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+    }
+
+    @Override
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        Log.d(TAG,"SurfaceTexture size changed");
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        Log.d(TAG,"SurfaceTexture destroyed");
+        if(mMediaPlayer != null)
+            mMediaPlayer.release();
+        return true;
+    }
+
+    private void setUpMediaplayer(Surface s) {
+        try
+        {
+            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer.setSurface(s);
+            mMediaPlayer.setLooping(true);
+            mMediaPlayer.setOnPreparedListener(PreparedListener);
+            mSwitch.setVisibility(Switch.VISIBLE);
+        }
+        catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void StreamSwitchSetup()
     {
         // Get the Switch
         mSwitch = (Switch) mLayout.findViewById(R.id.CameraStreamSwitch);
+        mSwitch.setVisibility(Switch.GONE);
 
         // Get The VideoView
-        mVideoView =(VideoView)mLayout.findViewById(R.id.VideoViewID);
-        mVideoView.setVisibility(VideoView.GONE);
+        mTextureView =(TextureView) mLayout.findViewById(R.id.TextureViewID);
+        mTextureView.setSurfaceTextureListener(this);
 
         // If We Receive a Switch Event we will start or stop the stream of video
         mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 Log.d("STREAM", "onCheckedChanged: " + isChecked);
-
                 if (isChecked) {
                     if(mDeviceAddress != null && mDeviceVideoPort>0) {
-                        //String path="http://clips.vorwaerts-gmbh.de/VfE_html5.mp4";
-                        String path = "http://" + mDeviceAddress + ":" + Integer.toString(mDeviceVideoPort); //192.168.49.10:6000;
+                        String path = "http://" + mDeviceAddress + ":" + Integer.toString(mDeviceVideoPort);
                         Log.d(TAG,"Starting video stream from: " + path);
-                        Uri uri = Uri.parse(path);
-                        mVideoView.setVideoURI(uri);
-                        mVideoView.setVisibility(VideoView.VISIBLE);
-                        //Restart when done
-                        mVideoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            @Override
-                            public void onCompletion(MediaPlayer mp) {
-                                mVideoView.start();
-                            }
-                        });
-                        mVideoView.start();
-                        // Make sure that we Do NOT play audio received.
-                        // No audio should be received from the robot
-                        mVideoView.setOnPreparedListener(PreparedListener);
+                        try {
+                            mMediaPlayer.setDataSource(path);
+                            mMediaPlayer.prepareAsync();
+                            mTextureView.setVisibility(TextureView.VISIBLE);
+                            mCameraCircleImageButton.setVisibility(ImageButton.VISIBLE);
+                            mCameraIconImageButton.setVisibility(ImageButton.VISIBLE);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (IllegalStateException e) {
+                            Log.e(TAG,"Media player was in illegal state");
+                            e.printStackTrace();
+                            Toast.makeText(mContext, R.string.text_video_unavailable, Toast.LENGTH_SHORT).show();
+                            mSwitch.setChecked(false);
+                        }
                     } else {
+                        Log.e(TAG,"Device address and/or port was invalid");
                         Toast.makeText(mContext, R.string.text_video_unavailable, Toast.LENGTH_SHORT).show();
                         mSwitch.setChecked(false);
                     }
                 } else {
-                    mVideoView.stopPlayback();
-                    mVideoView.setVisibility(VideoView.GONE);
+                    mMediaPlayer.reset();
+                    mTextureView.setVisibility(TextureView.GONE);
+                    mCameraCircleImageButton.setVisibility(ImageButton.GONE);
+                    mCameraIconImageButton.setVisibility(ImageButton.GONE);
                 }
             }
         });
@@ -416,13 +481,7 @@ public class ControlFragment extends android.support.v4.app.Fragment {
         @Override
         public void onPrepared(MediaPlayer m) {
             try {
-                if (m.isPlaying()) {
-                    m.stop();
-                    m.release();
-                    m = new MediaPlayer();
-                }
                 m.setVolume(0f, 0f);
-                m.setLooping(false);
                 m.start();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -454,6 +513,60 @@ public class ControlFragment extends android.support.v4.app.Fragment {
             mImageAssistedDriveMode.setVisibility(View.INVISIBLE);
             Log.d(TAG, "INVISIBLE");
         }
+    }
+
+    private void saveScreenShot(TextureView v) {
+        Log.d(TAG,"Taking Screenshot");
+        Bitmap bm = v.getBitmap();
+        if(bm != null) {
+            saveBitmap(bm);
+        } else {
+            Log.e(TAG, "Bitmap is null");
+        }
+    }
+
+    // @http://stackoverflow.com/questions/27435985/how-to-capture-screenshot-of-videoview-when-streaming-video-in-android
+    private void saveBitmap(final Bitmap bm) {
+        Log.d(TAG,"Saving screenshot");
+        final String mPath = Environment.getExternalStorageDirectory().toString()
+                + "/Pictures/" + "RoboGoGo_" + System.currentTimeMillis() + ".png";
+
+        AsyncTask saveBitmap = new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] params) {
+                String mPath = Environment.getExternalStorageDirectory().toString()
+                        + "/Pictures/" + "RoboGoGo_" + System.currentTimeMillis() + ".png";
+                OutputStream fos = null;
+                File imageFile = new File(mPath);
+
+                try {
+                    fos = new FileOutputStream(imageFile);
+                    bm.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                    fos.flush();
+                    fos.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Object o) {
+                Toast.makeText(mContext, R.string.text_screenshot_saved + " " + mPath, Toast.LENGTH_SHORT).show();
+                super.onPostExecute(o);
+            }
+        };
+        /*
+            In order to run multiple AsyncTask in parallel, the call to execute them is dependent on
+            build version
+            @ http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
+        */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            saveBitmap.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+        else
+            saveBitmap.execute((Void[]) null);
     }
 
     protected void bindToService(Intent service) {
