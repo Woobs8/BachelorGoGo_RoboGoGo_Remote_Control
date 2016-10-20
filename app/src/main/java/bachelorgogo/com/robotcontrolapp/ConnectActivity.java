@@ -245,7 +245,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            Log.d("ConnectActivity", "onServiceDisconnected called");
+            Log.d(TAG, "onServiceDisconnected called");
             mBound = false;
         }
     };
