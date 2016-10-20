@@ -11,7 +11,7 @@
     android:paddingTop="0dp"
     tools:context="bachelorgogo.com.robotcontrolapp.ControlActivity">
 
-    <VideoView
+    <TextureView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"
@@ -20,7 +20,7 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:id="@+id/VideoViewID" />
+        android:id="@+id/TextureViewID" />
 
     <ImageButton
         android:layout_width="@dimen/camera_btn_size"
@@ -35,18 +35,26 @@
         android:layout_marginLeft="@dimen/camera_btn_margin_left"
         />
 
-    <ImageButton
-        android:layout_width="@dimen/camera_circle_size"
-        android:layout_height="@dimen/camera_circle_size"
-        android:src="@drawable/ic_camera_circle"
-        android:id="@+id/camera_circle"
-        android:background="@null"
-        android:scaleType="fitCenter"
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_marginBottom="@dimen/camera_circle_margin_bottom"
-        android:layout_marginLeft="@dimen/camera_circle_margin_left"
-        />
+        android:background="@android:color/transparent">
+
+        <ImageButton
+            android:layout_width="@dimen/camera_circle_size"
+            android:layout_height="@dimen/camera_circle_size"
+            android:src="@drawable/ic_camera_circle"
+            android:id="@+id/camera_circle"
+            android:background="?selectableItemBackgroundBorderless"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="@dimen/camera_circle_margin_bottom"
+            android:layout_marginLeft="@dimen/camera_circle_margin_left"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            />
+    </RelativeLayout>
 
     <TextView
         android:layout_width="wrap_content"

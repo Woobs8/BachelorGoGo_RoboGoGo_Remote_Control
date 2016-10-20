@@ -23,6 +23,7 @@
     <string name="text_settings">Settings</string>
     <string name="text_device_info">Device Information</string>
     <string name="text_video_unavailable">Video feed not available</string>
+    <string name="text_screenshot_saved">Screenshot saved to:</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>

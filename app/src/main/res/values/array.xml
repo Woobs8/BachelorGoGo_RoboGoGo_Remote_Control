@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="VideoSettings">
-        <item>320x200 @ 30 fps</item>
-        <item>640x200 @ 15 fps</item>
+        <item>426x240 @ 30 fps</item>
+        <item>640x360 @ 30 fps</item>
+        <item>1280x720 @ 30 fps</item>
+        <item>1280x720 @ 60 fps</item>
     </string-array>
 
     <string-array name="VideoSettingsData">
         <item>1</item>
         <item>2</item>
+        <item>3</item>
+        <item>4</item>
     </string-array>
 </resources>
