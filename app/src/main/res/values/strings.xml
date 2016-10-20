@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Robot Control App</string>
+    <string name="app_name">RoboGoGo Remote Control</string>
     <string name="text_welcome">Welcome</string>
     <string name="text_Connect">Connect</string>
     <string name="text_Connecting">Connecting...</string>
