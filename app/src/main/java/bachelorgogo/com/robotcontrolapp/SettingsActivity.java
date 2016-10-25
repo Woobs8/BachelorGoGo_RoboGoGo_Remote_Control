@@ -298,6 +298,11 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             mSettings = new SettingsObject() {
                 @Override
                 public void onSuccess(String command) {
+                    Log.d(TAG,"Settings successfully saved to robot. Creating new restore point");
+                    mDeviceName = mSharedPrefs.getString(getString(R.string.settings_device_name_key), getString(R.string.robotName));
+                    mVideoQualityIndex = mSharedPrefs.getString(getString(R.string.settings_video_key), "1");
+                    mPowerSaveMode = mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key), false);
+                    mAssistedDrivingMode = mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key), false);
                     mUnsyncedChanges = false;
                     upload_btn.setEnabled(true);
                     upload_btn.setSummary(getString(R.string.settings_synced));
