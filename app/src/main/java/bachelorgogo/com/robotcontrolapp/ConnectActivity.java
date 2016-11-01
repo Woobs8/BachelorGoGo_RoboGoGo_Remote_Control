@@ -48,7 +48,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
     private Handler timedExecutionHandler = new Handler();
-    private Runnable restartPeerListenerRunnable;
     private Runnable connectionTimeoutRunnable;
     private final int DELAY_SERVICE_BIND_MS = 3000;
     private final int CONNECTION_ATTEMPT_TIMEOUT = 35000;   //35 sec * 1000 msec
@@ -174,11 +173,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         // delay Hack to allow robot to register on network before service start looking for it
         bindToService(wifiServiceIntent);
-        timedExecutionHandler.postDelayed(restartPeerListenerRunnable,DELAY_SERVICE_BIND_MS);
-
-
-        // Change the runnable to Refresh Listening every 30 seconds
-
 
         super.onResume();
     }

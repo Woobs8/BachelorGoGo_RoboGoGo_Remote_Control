@@ -36,8 +36,6 @@ public class WiFiDirectService extends Service {
     static final String TAG = "WiFiDirectService";
     // WiFi Direct Local Broadcast intent keys
     static final String WIFI_DIRECT_CONNECTION_UPDATED_KEY = "WiFi_Direct_update";
-    static final String WIFI_DIRECT_PEER_NAME_KEY = "WiFi_Direct_peer_name_key";
-    static final String WIFI_DIRECT_PEER_ADDRESS_KEY = "WiFi_Direct_peer_address_key";
 
     // WiFi Direct Local Broadcast actions
     static final String WIFI_DIRECT_STATE_CHANGED = "WiFi_Direct_state_changed";
