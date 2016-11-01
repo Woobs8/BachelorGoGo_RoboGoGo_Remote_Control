@@ -35,7 +35,7 @@ import java.util.ArrayList;
 public class WiFiDirectService extends Service {
     static final String TAG = "WiFiDirectService";
     // WiFi Direct Local Broadcast intent keys
-    static final String WIFI_DIRECT_CONNECTION_UPDATED_KEY = "WiFi_Direct_update";
+    static final String WIFI_DIRECT_CONNECTION_STATE_KEY = "WiFi_Direct_update";
 
     // WiFi Direct Local Broadcast actions
     static final String WIFI_DIRECT_STATE_CHANGED = "WiFi_Direct_state_changed";
@@ -46,6 +46,10 @@ public class WiFiDirectService extends Service {
     // Local Broadcast actions
     static final String ROBOT_STATUS_RECEIVED_KEY = "robot_status";
     static final String ROBOT_STATUS_RECEIVED = "robot_status_received";
+
+    // System defines
+    private final String SYSTEM_IDENTIFICATION_STRING = "BachelorGoGo";
+    private final String SYSTEM_IDENTIFICATION_SEPARATOR = "*";
 
     // WiFi Direct related
     WifiP2pManager mManager;
@@ -71,17 +75,17 @@ public class WiFiDirectService extends Service {
     private Socket mSocket;
     private String mDeviceName;
     private String mDeviceMAC;
-
-    // Network clients
-    ControlClient mControlClient;
-    RobotStatusClient mRobotStatusClient;
-    SettingsClient mSettingsClient;
     private int mGroupOwnerPort = 9999;
     private int mHostUDPPort = -1;
     private int mHostTCPPort = -1;
     private int mHostHTTPPort = 1;
     private int mLocalUDPPort = 4999;
     private int mEstablishConnectionTimeout = 30000; //30 sec * 1000 msec
+
+    // Network clients
+    ControlClient mControlClient;
+    RobotStatusClient mRobotStatusClient;
+    SettingsClient mSettingsClient;
 
     // Binder given to clients
     private final IBinder mBinder = (IBinder) new LocalBinder();
@@ -111,9 +115,21 @@ public class WiFiDirectService extends Service {
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
-                //clear list and add new entries
+                // New list of available peers, so clear existing peer list
                 mPeers.clear();
-                mPeers.addAll(peers.getDeviceList());
+
+                // Iterate through avaialable peers and parse device names to filter robots
+                for (WifiP2pDevice device : peers.getDeviceList())
+                {
+                    String unformattedDeviceName = device.deviceName;
+                    if(unformattedDeviceName.contains(SYSTEM_IDENTIFICATION_STRING)) {
+                        // Remove the system recognition string and add to device list
+                        String formattedDeviceName = unformattedDeviceName.substring(unformattedDeviceName.indexOf(SYSTEM_IDENTIFICATION_SEPARATOR)+1);
+                        if (!formattedDeviceName.equals(""))
+                            device.deviceName = formattedDeviceName;
+                        mPeers.add(device);
+                    }
+                }
 
                 if(mPeers.size() == 0) {
                     Log.d(TAG,"No peers found");
@@ -387,7 +403,7 @@ public class WiFiDirectService extends Service {
 
                     // Broadcast to inform listeners about failure to connect
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_STATE_KEY, false);
                     LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
                 }
             });
@@ -520,7 +536,7 @@ public class WiFiDirectService extends Service {
 
                 // Wi-Fi P2P state is broadcast
                 Intent notifyActivity = new Intent(WIFI_DIRECT_STATE_CHANGED);
-                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mWiFiDirectEnabled);
+                notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_STATE_KEY, mWiFiDirectEnabled);
                 localBroadcast.sendBroadcast(notifyActivity);
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // The peer list has changed.
@@ -635,7 +651,7 @@ public class WiFiDirectService extends Service {
 
                                                     // Broadcast a connection changed event
                                                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                                                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_STATE_KEY, mConnected);
                                                     localBroadcast.sendBroadcast(notifyActivity);
                                                 }
                                             }
@@ -733,7 +749,7 @@ public class WiFiDirectService extends Service {
 
                                                         // Broadcast a connection changed event
                                                         Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                                                        notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                                                        notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_STATE_KEY, mConnected);
                                                         localBroadcast.sendBroadcast(notifyActivity);
                                                     }
                                                 }
@@ -777,7 +793,7 @@ public class WiFiDirectService extends Service {
 
                     // Broadcast connection changed event
                     Intent notifyActivity = new Intent(WIFI_DIRECT_CONNECTION_CHANGED);
-                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_UPDATED_KEY, mConnected);
+                    notifyActivity.putExtra(WIFI_DIRECT_CONNECTION_STATE_KEY, mConnected);
                     localBroadcast.sendBroadcast(notifyActivity);
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
@@ -789,7 +805,6 @@ public class WiFiDirectService extends Service {
             }
             else if (WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION.equals(action)) {
                 // Peer discovery stopped or started
-                Log.d(TAG,"WiFiP2P broadcast: Peer discovery changed");
                 int discovery = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE, -1);
                 if (discovery == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED) {
                     Log.d(TAG, "Peer discovery started");

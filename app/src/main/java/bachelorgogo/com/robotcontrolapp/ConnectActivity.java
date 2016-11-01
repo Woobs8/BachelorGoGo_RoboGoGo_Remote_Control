@@ -244,7 +244,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent != null) {
-                boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_STATE_KEY, false);
                 switch (intent.getAction()) {
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
                         // React on connection succes or fault
