@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
 
 /*
     SettingsClient opens a TCP socket to the host as specified by the host address and port
@@ -23,6 +24,7 @@ public class SettingsClient {static final String TAG = "SettingsClient";
     private Socket mSocket;
     private AsyncTask<Void, Void, Void> async_client;
     private boolean mSettinsTransmitted = false;
+    private final int maxPacketSize = 255;
 
     private final int SO_TIMEOUT = 1000;
 
@@ -44,23 +46,32 @@ public class SettingsClient {static final String TAG = "SettingsClient";
             protected Void doInBackground(Void... params) {
                 String dataStr = "";
                 try {
-                    mSocket = new Socket();
-                    mSocket.setSoTimeout(SO_TIMEOUT);
-                    mSocket.bind(null);
-                    // Connect to host
-                    mSocket.connect((new InetSocketAddress(mHostAddress, mHostPort)));
-                    DataInputStream in = new DataInputStream(mSocket.getInputStream());
-                    DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
+                    if(mCommand.length() <= (maxPacketSize)) {
+                        mSocket = new Socket();
+                        mSocket.setSoTimeout(SO_TIMEOUT);
+                        mSocket.bind(null);
 
-                    //Send port to host
-                    out.writeUTF(mCommand);
+                        // Connect to host
+                        mSocket.connect((new InetSocketAddress(mHostAddress, mHostPort)));
+                        DataInputStream in = new DataInputStream(mSocket.getInputStream());
+                        DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
-                    //Wait for ACK
-                    String recv = in.readUTF();
-                    if(recv.equals(command.getAckString())) {
-                        mSettinsTransmitted = true;
-                    } else {
-                        mSettinsTransmitted = false;
+                        //Send settings to host
+                        byte[] packet = new byte[maxPacketSize];
+                        Arrays.fill(packet, (byte) 0);
+                        byte[] message = mCommand.getBytes();
+                        System.arraycopy(message, 0, packet, 0, message.length);
+                        out.write(packet);
+
+                        //Wait for ACK
+                        byte[] rcv = new byte[command.getAckString().length()];
+                        in.read(rcv);
+                        String recvString = new String(rcv);
+                        if (recvString.equals(command.getAckString())) {
+                            mSettinsTransmitted = true;
+                        } else {
+                            mSettinsTransmitted = false;
+                        }
                     }
 
                 } catch (SocketTimeoutException se) {

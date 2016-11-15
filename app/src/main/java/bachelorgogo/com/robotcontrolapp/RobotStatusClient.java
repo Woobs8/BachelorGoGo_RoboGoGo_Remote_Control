@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
  */
 public class RobotStatusClient {
     private final String TAG = "RobotStatusClient";
-    private int mPacketSize = 0;
+    private int mPacketSize = 255;
     private int mPort;
     private String mReceivedString;
     private DatagramSocket mDatagramSocket;
@@ -100,22 +100,13 @@ public class RobotStatusClient {
         try {
             Log.d(TAG,"Opening socket on port " + mPort);
             mDatagramSocket = new DatagramSocket(mPort);
-            byte[] packetSizeData = new byte[4];    //Max size = 2^32
 
-            //First read size of packet...
-            DatagramPacket size_packet = new DatagramPacket(packetSizeData, packetSizeData.length);
-            mDatagramSocket.receive(size_packet);
-            ByteBuffer sizeBuffer = ByteBuffer.wrap(size_packet.getData()); // big-endian by default
-            mPacketSize = sizeBuffer.getInt();
-            Log.d(TAG,"Receiving packet of size: " + mPacketSize);
-
-            //...Then the actual packet
             byte[] receiveData = new byte[mPacketSize];
             DatagramPacket recv_packet = new DatagramPacket(receiveData, receiveData.length);
-            Log.d(TAG, "receiving data");
+            Log.d(TAG, "Receiving data");
             mDatagramSocket.receive(recv_packet);
             mReceivedString = new String(recv_packet.getData());
-            Log.d(TAG, "Received string: " + mReceivedString);
+            Log.d(TAG, "Received status: " + mReceivedString);
 
             //Broadcast received data
             Intent notifyActivity = new Intent(WiFiDirectService.ROBOT_STATUS_RECEIVED);

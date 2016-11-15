@@ -15,6 +15,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.support.v4.content.LocalBroadcastManager;
@@ -61,6 +62,9 @@ public class WiFiDirectService extends Service {
     private boolean mShouldDiscoverPeers = true;
     private int mDiscoverPeersListeners = 0;
     private ArrayList<WifiP2pDevice> mPeers = new ArrayList();
+    private Handler connectionTimeoutHandler = new Handler();
+    private Runnable connectionTimeoutRunnable;
+    private final int CONNECTION_ATTEMPT_TIMEOUT = 10000;   //10 sec * 1000 msec
 
     // Broadcast receiver related
     BroadcastReceiver mReceiver;
@@ -80,7 +84,7 @@ public class WiFiDirectService extends Service {
     private int mHostTCPPort = -1;
     private int mHostHTTPPort = 1;
     private int mLocalUDPPort = 4999;
-    private int mEstablishConnectionTimeout = 30000; //30 sec * 1000 msec
+    private int mEstablishConnectionTimeout = 5000; //5 sec * 1000 msec
 
     // Network clients
     ControlClient mControlClient;
@@ -139,6 +143,26 @@ public class WiFiDirectService extends Service {
                     Intent notifyActivity = new Intent(WIFI_DIRECT_PEERS_CHANGED);
                     LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notifyActivity);
                 }
+            }
+        };
+
+        // Handle unresponsive connection attempts
+        connectionTimeoutRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Connection attempt timeout. Cancelling connection.");
+                mManager.cancelConnect(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG,"Successfully cancelled connection attempt");
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG,"Failed to cancel connection attempt");
+                    }
+                });
+                removeWiFiDirectGroup();
             }
         };
 
@@ -268,6 +292,7 @@ public class WiFiDirectService extends Service {
             mRobotStatusClient.stop();
             mCurrentlyBroadcastingStatus = false;
         }
+        connectionTimeoutHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onDestroy();
     }
 
@@ -394,6 +419,7 @@ public class WiFiDirectService extends Service {
                 public void onSuccess() {
                     //success logic
                     Log.d(TAG, "Successful attempt to connect to " + deviceMAC);
+                    connectionTimeoutHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
                 }
 
                 @Override
@@ -550,6 +576,7 @@ public class WiFiDirectService extends Service {
                 NetworkInfo networkState = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 // Check if we connected or disconnected.
                 if (networkState.isConnected()) {
+                    connectionTimeoutHandler.removeCallbacks(connectionTimeoutRunnable);
                     Log.d(TAG,"Connection established");
                     // If connection is established start IP and port exchange procedure
                     if(!mConnected) {
@@ -567,6 +594,7 @@ public class WiFiDirectService extends Service {
                                      */
                                     if (info.isGroupOwner) {
                                         Log.d(TAG,"This device is group owner");
+                                        Log.d(TAG,"Address: "+info.groupOwnerAddress);
                                         //Listen for clients and exchange ports
                                         AsyncTask<Void, Void, Void> async_client = new AsyncTask<Void, Void, Void>() {
                                             @Override
@@ -582,7 +610,9 @@ public class WiFiDirectService extends Service {
                                                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
 
                                                     //read client UDP port
-                                                    String dataStr = in.readUTF();
+                                                    byte[] rcv = new byte[4];
+                                                    in.read(rcv);
+                                                    String dataStr = new String(rcv);
                                                     int hostUDPPort = Integer.valueOf(dataStr);
                                                     if (hostUDPPort > 0 && hostUDPPort < 9999)
                                                         mHostUDPPort = hostUDPPort;
@@ -591,7 +621,8 @@ public class WiFiDirectService extends Service {
                                                     Log.d(TAG, "UDP client resolved to: " + mDeviceAddress + " (port " + mHostUDPPort + ")");
 
                                                     //read client TCP port
-                                                    dataStr = in.readUTF();
+                                                    in.read(rcv);
+                                                    dataStr = new String(rcv);
                                                     int hostTCPPort = Integer.valueOf(dataStr);
                                                     if (hostTCPPort > 0 && hostTCPPort < 9999)
                                                         mHostTCPPort = hostTCPPort;
@@ -600,7 +631,8 @@ public class WiFiDirectService extends Service {
                                                     Log.d(TAG, "TCP client resolved to: " + mDeviceAddress + " (port " + mHostTCPPort + ")");
 
                                                     //read client HTTP server port
-                                                    dataStr = in.readUTF();
+                                                    in.read(rcv);
+                                                    dataStr = new String(rcv);
                                                     int hostHTTPPort = Integer.valueOf(dataStr);
                                                     if (hostHTTPPort > 0 && hostHTTPPort < 9999)
                                                         mHostHTTPPort = hostHTTPPort;
@@ -609,11 +641,13 @@ public class WiFiDirectService extends Service {
                                                     Log.d(TAG, "HTTP server resolved to: " + mDeviceAddress + " (port " + mHostHTTPPort + ")");
 
                                                     //Send UDP port to client
-                                                    out.writeUTF(Integer.toString(mLocalUDPPort));
+                                                    byte[] send = Integer.toString(mLocalUDPPort).getBytes();
+                                                    out.write(send);
 
                                                 } catch (SocketTimeoutException st) {
                                                     Log.d(TAG,"Attempt to establish connection timed out");
                                                     mConnected = false;
+                                                    //TODO: close connection properly
                                                 } catch (IOException e) {
                                                     Log.e(TAG, "Error listening for client IPs");
                                                     e.printStackTrace();
@@ -679,24 +713,28 @@ public class WiFiDirectService extends Service {
                                                         mSocket.setSoTimeout(mEstablishConnectionTimeout);
                                                         mSocket.bind(null);
                                                         //Prevent race condition when attempting to
-                                                        // connect before owner is accepts incoming connections
+                                                        // connect before owner is accepting incoming connections
                                                         SystemClock.sleep(100);
                                                         mSocket.connect((new InetSocketAddress(mDeviceAddress, mGroupOwnerPort)));
                                                         DataInputStream in = new DataInputStream(mSocket.getInputStream());
                                                         DataOutputStream out = new DataOutputStream(mSocket.getOutputStream());
 
                                                         //Send port to owner
-                                                        out.writeUTF(Integer.toString(mLocalUDPPort));
+                                                        byte[] send = Integer.toString(mLocalUDPPort).getBytes();
+                                                        out.write(send);
 
                                                         //read owner UDP port
-                                                        String dataStr = in.readUTF();
+                                                        byte[] rcv = new byte[4];
+                                                        in.read(rcv);
+                                                        String dataStr = new String(rcv);
                                                         int hostUDPPort = Integer.valueOf(dataStr);
                                                         if (hostUDPPort > 0 && hostUDPPort < 9999)
                                                             mHostUDPPort = hostUDPPort;
                                                         Log.d(TAG, "UDP host resolved to: " + mDeviceAddress + " (port " + mHostUDPPort + ")");
 
                                                         //read owner TCP port
-                                                        dataStr = in.readUTF();
+                                                        in.read(rcv);
+                                                        dataStr = new String(rcv);
                                                         int hostTCPPort = Integer.valueOf(dataStr);
                                                         if (hostTCPPort > 0 && hostTCPPort < 9999)
                                                             mHostTCPPort = hostTCPPort;
@@ -705,7 +743,8 @@ public class WiFiDirectService extends Service {
                                                         Log.d(TAG, "TCP host resolved to: " + mDeviceAddress + " (port " + mHostTCPPort + ")");
 
                                                         //read client HTTP server port
-                                                        dataStr = in.readUTF();
+                                                        in.read(rcv);
+                                                        dataStr = new String(rcv);
                                                         int hostHTTPPort = Integer.valueOf(dataStr);
                                                         if (hostHTTPPort > 0 && hostHTTPPort < 9999)
                                                             mHostHTTPPort = hostHTTPPort;

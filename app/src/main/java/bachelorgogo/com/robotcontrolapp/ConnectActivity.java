@@ -47,10 +47,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     boolean mBound;
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
-    private Handler timedExecutionHandler = new Handler();
-    private Runnable connectionTimeoutRunnable;
-    private final int DELAY_SERVICE_BIND_MS = 3000;
-    private final int CONNECTION_ATTEMPT_TIMEOUT = 35000;   //35 sec * 1000 msec
 
     private IntentFilter mIntentFilter;
 
@@ -125,16 +121,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
         // Progress spinner view
         mProgress = (RelativeLayout)findViewById(R.id.progressBarView);
-
-        connectionTimeoutRunnable = new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Connection attempt timed out");
-                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                Toast.makeText(mService, R.string.text_Connection_failed, Toast.LENGTH_SHORT).show();
-                restartPeerListening(true);
-            }
-        };
     }
 
     @Override
@@ -143,8 +129,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
         if(mToast != null)
             mToast.cancel();
-        if (connectionTimeoutRunnable != null)
-            timedExecutionHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onPause();
     }
 
@@ -153,8 +137,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         // make sure service is stopped when app is shut down
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         stopService(wifiServiceIntent);
-        if (connectionTimeoutRunnable != null)
-            timedExecutionHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onDestroy();
     }
 
@@ -268,11 +250,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             //Unlock screen orientation
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             if(mConnectionAttempted) {
-                                if (connectionTimeoutRunnable != null)
-                                    timedExecutionHandler.removeCallbacks(connectionTimeoutRunnable);
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
-                                mService.disconnectFromDevice();
                                 mConnectionAttempted = false;
                                 restartPeerListening(true);
                             }
@@ -334,7 +313,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mToast.show();
         mConnectionAttempted = true;
         mService.connectToDevice(mSelectedDeviceAddress, mDeviceName);
-        timedExecutionHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
     }
 
     // callBack when ConnectDialog is cancelled
@@ -349,8 +327,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         if(mService != null) {
             if(clearAdapter)
                 mDeviceObjectAdapter.clear();
-            //mService.removeListener(true, false);
-            //mService.addListener(true, false);
             mService.restartPeerListening();
             lstViewDevices.setAlpha((float)(1));
         }

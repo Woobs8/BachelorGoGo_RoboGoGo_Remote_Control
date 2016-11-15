@@ -34,11 +34,11 @@ public class StatusMessage {
         //import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
         //import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 
-        mRawData = RawData.substring(RawData.indexOf("*")+3);
+        mRawData = RawData.substring(RawData.indexOf("*")+4);
 
         mSegmentedRawData = mRawData.split(";");
 
-        for(int i = 0; i < mSegmentedRawData.length; i++){
+        for(int i = 0; i < mSegmentedRawData.length-1; i++){    //last segment is junk
             Log.d(TAG,mSegmentedRawData[i]);
             String tempDataSegment[] = mSegmentedRawData[i].split(":");
             switch (tempDataSegment[0]){

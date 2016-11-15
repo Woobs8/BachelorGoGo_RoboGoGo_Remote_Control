@@ -39,9 +39,11 @@ public class CommandObject {
             y = Y_MIN;
 
         DataCommandString = CMD_CONTROL;
+        DataCommandString += SPACING_BETWEEN_STRINGS;
         DataCommandString += STEERING_X_COORDINATE_TAG  + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", x);
         DataCommandString += SPACING_BETWEEN_STRINGS;
         DataCommandString += STEERING_Y_COORDINATE_TAG + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", y);
+        DataCommandString += SPACING_BETWEEN_STRINGS;
     }
 
     // Called when using power / angle
@@ -57,9 +59,11 @@ public class CommandObject {
             angle = ANGLE_MIN;
 
         DataCommandString = CMD_CONTROL;
+        DataCommandString += SPACING_BETWEEN_STRINGS;
         DataCommandString += STEERING_POWER_TAG  + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", power);
         DataCommandString += SPACING_BETWEEN_STRINGS;
         DataCommandString += SEERING_ANGLE_TAG + SPACING_BETWEEN_TAG_AND_DATA + String.format("%.2f", angle);
+        DataCommandString += SPACING_BETWEEN_STRINGS;
 
     }
 
