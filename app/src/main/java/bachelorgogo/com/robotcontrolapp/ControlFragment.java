@@ -123,7 +123,7 @@ implements TextureView.SurfaceTextureListener {
                         BatteryPct.setText(Integer.toString(mStatus.getBatteryPercentage())+"%");
                         break;
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
-                        boolean connection_state = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY,true);
+                        boolean connection_state = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_STATE_KEY,true);
                         if(!connection_state)
                             Toast.makeText(mContext, R.string.text_Disconnected, Toast.LENGTH_LONG).show();
                         getActivity().finish();

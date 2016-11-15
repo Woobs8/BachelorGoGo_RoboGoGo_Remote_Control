@@ -7,7 +7,7 @@ import android.util.Log;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /*
     ControlClient transmits the settings stored in the supplied SettingsObject through a UDP socket
@@ -21,6 +21,7 @@ public class ControlClient {
     private DatagramSocket mDatagramSocket;
     private AsyncTask<Void, Void, Void> async_client;
     private boolean FAILURE = false;
+    private final int mPacketSize = 255;
 
     ControlClient(InetAddress host, int port) {
         mHostAddress = host;
@@ -43,20 +44,15 @@ public class ControlClient {
             {
                 try
                 {
-                    if(mCommand.length() <= (Math.pow(2,32)-1)) {
+                    if(mCommand.length() <= (mPacketSize)) {
                         mDatagramSocket = new DatagramSocket();
 
-                        //First send packet size...
-                        ByteBuffer dbuf = ByteBuffer.allocate(4);   //max packet size = 2^32
-                        dbuf.putInt(mCommand.length());
-                        byte[] size = dbuf.array();
-                        DatagramPacket sizePacket = new DatagramPacket(size, size.length, mHostAddress, mHostPort);
-                        mDatagramSocket.send(sizePacket);
-
-                        //Then the actual packet
                         Log.d(TAG, "Sending command: " + mCommand);
+                        byte[] packet = new byte[mPacketSize];
+                        Arrays.fill( packet, (byte) 0 );
                         byte[] message = mCommand.getBytes();
-                        DatagramPacket dp = new DatagramPacket(message, message.length, mHostAddress, mHostPort);
+                        System.arraycopy(message,0,packet,0,message.length);
+                        DatagramPacket dp = new DatagramPacket(packet, packet.length, mHostAddress, mHostPort);
                         mDatagramSocket.send(dp);
                         FAILURE = false;
                     }

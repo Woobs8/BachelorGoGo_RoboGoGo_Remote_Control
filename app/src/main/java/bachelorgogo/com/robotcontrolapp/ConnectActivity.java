@@ -3,6 +3,7 @@ package bachelorgogo.com.robotcontrolapp;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatDialogFragment;
@@ -46,12 +47,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
     boolean mBound;
     boolean mConnected = false;
     private boolean mConnectionAttempted = false;
-    private Handler restartPeerListeningHandler = new Handler();
-    private Runnable restartPeerListenerRunnable;
-    private Runnable connectionTimeoutRunnable;
-    private final int DELAY_SERVICE_BIND_MS = 3000;
-    private final int RESTART_LISTENING_TIMER_MS = 15000;
-    private final int CONNECTION_ATTEMPT_TIMEOUT = 35000;   //35 sec * 1000 msec
 
     private IntentFilter mIntentFilter;
 
@@ -98,6 +93,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         View empty = getLayoutInflater().inflate(R.layout.connect_spinner,null,false);
         addContentView(empty, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,RelativeLayout.LayoutParams.MATCH_PARENT));
         lstViewDevices.setEmptyView(empty);
+        lstViewDevices.setAlpha((float)(1));
 
         // set adapter for listview
         lstViewDevices.setAdapter(mDeviceObjectAdapter);
@@ -125,32 +121,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
 
         // Progress spinner view
         mProgress = (RelativeLayout)findViewById(R.id.progressBarView);
-
-
-        // After we have been bound
-        // Reset after a few seconds to make sure broadcasting from car started before listening from device
-        // Afterwards every 30 seconds we want to Restart Listening in the service
-        restartPeerListenerRunnable = new Runnable()
-        {
-            public void run()
-            {
-                if(!mConnectionAttempted) {
-                    Log.d(TAG, "restartPeerListenerRunnable run: Restart Listening without list clear ");
-                    restartPeerListening(false);
-                    restartPeerListeningHandler.postDelayed(restartPeerListenerRunnable, RESTART_LISTENING_TIMER_MS);
-                }
-            }
-        };
-
-        connectionTimeoutRunnable = new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Connection attempt timed out");
-                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                Toast.makeText(mService, R.string.text_Connection_failed, Toast.LENGTH_SHORT).show();
-                restartPeerListening(true);
-            }
-        };
     }
 
     @Override
@@ -159,10 +129,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
         if(mToast != null)
             mToast.cancel();
-        if (restartPeerListenerRunnable != null)
-            restartPeerListeningHandler.removeCallbacks(restartPeerListenerRunnable);
-        if (connectionTimeoutRunnable != null)
-            restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onPause();
     }
 
@@ -171,10 +137,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         // make sure service is stopped when app is shut down
         Intent wifiServiceIntent = new Intent(ConnectActivity.this, WiFiDirectService.class);
         stopService(wifiServiceIntent);
-        if (restartPeerListenerRunnable != null)
-            restartPeerListeningHandler.removeCallbacks(restartPeerListenerRunnable);
-        if (connectionTimeoutRunnable != null)
-            restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
         super.onDestroy();
     }
 
@@ -185,7 +147,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mIntentFilter = new IntentFilter();
         mConnectionAttempted = false;
         mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED);
-        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED);
+        mIntentFilter.addAction(WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED);
         // register local broadcastReceiver
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
         //Bind to Wifi Service
@@ -193,11 +155,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         wifiServiceIntent.putExtra(DISCOVER_PEERS, true);
         // delay Hack to allow robot to register on network before service start looking for it
         bindToService(wifiServiceIntent);
-        restartPeerListeningHandler.postDelayed(restartPeerListenerRunnable,DELAY_SERVICE_BIND_MS);
-
-
-        // Change the runnable to Refresh Listening every 30 seconds
-
 
         super.onResume();
     }
@@ -269,13 +226,14 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent != null) {
-                boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_UPDATED_KEY, false);
+                boolean status = intent.getBooleanExtra(WiFiDirectService.WIFI_DIRECT_CONNECTION_STATE_KEY, false);
                 switch (intent.getAction()) {
                     case WiFiDirectService.WIFI_DIRECT_CONNECTION_CHANGED:
                         // React on connection succes or fault
                         Log.d(TAG,"Connection status changed to: " + Boolean.toString(status));
                         if(status) {
                             mConnected = true;
+                            lstViewDevices.setAlpha((float)(1));
                             //Unlock screen orientation
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             mDeviceObjectAdapter.clear();
@@ -292,22 +250,19 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             //Unlock screen orientation
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             if(mConnectionAttempted) {
-                                if (connectionTimeoutRunnable != null)
-                                    restartPeerListeningHandler.removeCallbacks(connectionTimeoutRunnable);
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
-                                mService.disconnectFromDevice();
                                 mConnectionAttempted = false;
                                 restartPeerListening(true);
                             }
                         }
                         break;
-                    case WiFiDirectService.WIFI_DIRECT_SERVICES_CHANGED:
+                    case WiFiDirectService.WIFI_DIRECT_PEERS_CHANGED:
                         // update listview with available robot peers
-                        String deviceName = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_NAME_KEY);
-                        String deviceAddress = intent.getStringExtra(WiFiDirectService.WIFI_DIRECT_PEER_ADDRESS_KEY);
-                        if(deviceName != null && deviceAddress != null) {
-                            UpdateDeviceList(deviceName, deviceAddress);
+                        ArrayList<WifiP2pDevice> peers = mService.getPeerList();
+                        for(int i=0; i < peers.size(); i++) {
+                            WifiP2pDevice device = peers.get(i);
+                            UpdateDeviceList(device.deviceName,device.deviceAddress);
                         }
                         break;
                 }
@@ -358,7 +313,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         mToast.show();
         mConnectionAttempted = true;
         mService.connectToDevice(mSelectedDeviceAddress, mDeviceName);
-        restartPeerListeningHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
     }
 
     // callBack when ConnectDialog is cancelled
@@ -373,8 +327,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
         if(mService != null) {
             if(clearAdapter)
                 mDeviceObjectAdapter.clear();
-            mService.removeListener(true, false);
-            mService.addListener(true, false);
+            mService.restartPeerListening();
             lstViewDevices.setAlpha((float)(1));
         }
     }

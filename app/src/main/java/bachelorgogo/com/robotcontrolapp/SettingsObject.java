@@ -64,6 +64,8 @@ public class SettingsObject {
         RobotProtocol protocol;
         // COMMAND INSERT
         mFormattedString = CMD_SETTINGS;
+        mFormattedString += SPACING_BETWEEN_STRINGS;
+
         // CAR NAME INSERT
         mFormattedString += CAR_NAME_TAG + SPACING_BETWEEN_TAG_AND_DATA + mDeviceName;
         mFormattedString += SPACING_BETWEEN_STRINGS;
@@ -77,8 +79,8 @@ public class SettingsObject {
         mFormattedString += SPACING_BETWEEN_STRINGS;
 
         // ASSISTED DRIVE MODE INSERT
-        mFormattedString += ASSERTED_DRIVE_MODE_TAG + SPACING_BETWEEN_TAG_AND_DATA + (mAssistedDrivingMode==true ? TRUE : FALSE)   ;
-
+        mFormattedString += ASSISTED_DRIVE_MODE_TAG + SPACING_BETWEEN_TAG_AND_DATA + (mAssistedDrivingMode==true ? TRUE : FALSE);
+        mFormattedString += SPACING_BETWEEN_STRINGS;
     }
 
     public String getDataString() {

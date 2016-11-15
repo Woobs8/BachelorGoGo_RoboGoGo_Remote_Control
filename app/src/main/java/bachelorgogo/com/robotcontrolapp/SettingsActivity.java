@@ -13,8 +13,12 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
+import android.text.InputFilter;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.Toast;
 
 /*
@@ -40,6 +44,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     //UI elements
     private static SettingsObject mSettings;
     private static Preference upload_btn;
+    private static EditText device_name_edit_txt;
 
     //Restore points
     private static String mDeviceName;
@@ -337,6 +342,38 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     return true;
                 }
             });
+
+            // Apply character filter to device name preference in order to limit the allowed characters
+            // Only letters (A-Z, a-z) and numbers (0-9) allowed.
+            // @http://stackoverflow.com/questions/3349121/how-do-i-use-inputfilter-to-limit-characters-in-an-edittext-in-android
+            device_name_edit_txt = ((EditTextPreference) findPreference(getString(R.string.settings_device_name_key))).getEditText();
+            InputFilter charFilter = new InputFilter() {
+                @Override
+                public CharSequence filter(CharSequence source, int start, int end,
+                                           Spanned dest, int dstart, int dend) {
+
+                    if (source instanceof SpannableStringBuilder) {
+                        SpannableStringBuilder sourceAsSpannableBuilder = (SpannableStringBuilder)source;
+                        for (int i = end - 1; i >= start; i--) {
+                            char currentChar = source.charAt(i);
+                            if (!Character.isLetterOrDigit(currentChar)) {
+                                sourceAsSpannableBuilder.delete(i, i+1);
+                            }
+                        }
+                        return source;
+                    } else {
+                        StringBuilder filteredStringBuilder = new StringBuilder();
+                        for (int i = start; i < end; i++) {
+                            char currentChar = source.charAt(i);
+                            if (Character.isLetterOrDigit(currentChar)) {
+                                filteredStringBuilder.append(currentChar);
+                            }
+                        }
+                        return filteredStringBuilder.toString();
+                    }
+                }
+            };
+            device_name_edit_txt.setFilters(new InputFilter[] {charFilter});
         }
     }
 }
