@@ -145,6 +145,7 @@ public class WiFiDirectService extends Service {
             @Override
             public void run() {
                 Log.d(TAG, "Connection attempt timeout. Cancelling connection.");
+                mShouldDiscoverPeers = true;
                 mManager.cancelConnect(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
@@ -413,6 +414,7 @@ public class WiFiDirectService extends Service {
                 public void onSuccess() {
                     //success logic
                     Log.d(TAG, "Successful attempt to connect to " + deviceMAC);
+                    mShouldDiscoverPeers = false;
                     connectionTimeoutHandler.postDelayed(connectionTimeoutRunnable, CONNECTION_ATTEMPT_TIMEOUT);
                 }
 
