@@ -15,6 +15,7 @@ public final class RobotProtocol {
          public static final String CMD_STATUS = "CMD*ST";
          public static final String CMD_SETTINGS = "CMD*SE";
          public static final String CMD_ACK = "CMD*OK";
+         public static final String CMD_NACK = "CMD*NO";
 
 
          public static final String SPACING_BETWEEN_TAG_AND_DATA = ":";
