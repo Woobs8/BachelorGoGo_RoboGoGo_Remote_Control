@@ -253,7 +253,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                                 mToast = Toast.makeText(ConnectActivity.this, R.string.text_Connection_failed, Toast.LENGTH_SHORT);
                                 mToast.show();
                                 mConnectionAttempted = false;
-                                restartPeerListening(true);
+                                lstViewDevices.setAlpha((float)(1));
+                                mDeviceObjectAdapter.clear();
                             }
                         }
                         break;
