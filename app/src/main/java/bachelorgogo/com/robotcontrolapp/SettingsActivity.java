@@ -5,6 +5,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.media.audiofx.BassBoost;
 import android.os.IBinder;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
@@ -20,6 +23,8 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.util.Set;
 
 /*
     Adapted from the template Settings Activity and Android doc @ https://developer.android.com/reference/android/preference/PreferenceActivity.html
@@ -283,11 +288,31 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     }
 
+    private void lockScreenOrientation() {
+        //Locking screen orientation when connecting, to prevent activity from being destroyed
+        int currentOrientation = getResources().getConfiguration().orientation;
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Log.d(TAG,"Screen orientation locked to landscape");
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE);
+        }
+        else {
+            Log.d(TAG,"Screen orientation locked to portrait");
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
+        }
+    }
+
+    private void unlockScreenOrientation() {
+        Log.d(TAG,"Screen orientation unlocked");
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
+
     /*
         This PreferenceFragment is inflated with desired layout for each header in the SettingsActivity.
      */
     public static class PreferenceFragment extends android.preference.PreferenceFragment
     {
+        private SettingsActivity mActivity;
+
         @Override
         public void onCreate(final Bundle savedInstanceState)
         {
@@ -295,6 +320,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             addPreferencesFromResource(R.xml.preference_screen);
             bindPreferenceSummaryToValue(findPreference("device_name_preference"));
             bindPreferenceSummaryToValue(findPreference("video_preference"));
+
+            mActivity = (SettingsActivity) getActivity();
 
             /*
                 SettingsObject holds the object to be transmitted to the robot.
@@ -311,6 +338,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     mUnsyncedChanges = false;
                     upload_btn.setEnabled(true);
                     upload_btn.setSummary(getString(R.string.settings_synced));
+                    mActivity.unlockScreenOrientation();
                 }
 
                 @Override
@@ -319,6 +347,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     Toast.makeText(getActivity(), getString(R.string.settings_sync_error_toast), Toast.LENGTH_LONG).show();
                     upload_btn.setEnabled(true);
                     upload_btn.setSummary(getString(R.string.settings_not_synced));
+                    mActivity.unlockScreenOrientation();
                 }
             };
 
@@ -338,10 +367,19 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                             mSharedPrefs.getBoolean(getString(R.string.settings_power_save_mode_key),false),
                             mSharedPrefs.getBoolean(getString(R.string.settings_assisted_driving_mode_key),false));
 
+                    mActivity.lockScreenOrientation();
+
                     mService.sendSettingsObject(mSettings);
                     return true;
                 }
             });
+
+            // Set Save button text to reflect current state
+            if(!mUnsyncedChanges)
+                upload_btn.setSummary(getString(R.string.settings_synced));
+            else
+                upload_btn.setSummary(getString(R.string.settings_not_synced));
+
 
             // Apply character filter to device name preference in order to limit the allowed characters
             // Only letters (A-Z, a-z) and numbers (0-9) allowed.
