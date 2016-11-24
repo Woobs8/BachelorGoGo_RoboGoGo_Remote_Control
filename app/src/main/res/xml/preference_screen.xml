@@ -7,7 +7,7 @@
 
         <EditTextPreference
             android:key="@string/settings_device_name_key"
-            android:defaultValue="roboGG"
+            android:defaultValue="@string/robotName"
             android:title="@string/settings_device_name_preference_title"
             android:summary="Change the name of the of currently connected robot. When attempting to connect to this robot in the future, this will be the name shown"
             android:selectAllOnFocus="true"

@@ -215,8 +215,9 @@ public class ControlActivity extends AppCompatActivity
                 // the actual Device Name and set the Text in the TextView.
                         // We get this from the StatusMessage object even though the name is saved
                         // in shared preferences in case a status message shows the car name Changed
-                StatusMessage setStatus = controlFragment.getStatus();
-                myTv.setText(setStatus.getCarName());
+                String name = mSharedPrefs.getString(getString(R.string.settings_device_name_key),
+                                                                    getString(R.string.robotName));
+                myTv.setText(name);
             }
 
             @Override
