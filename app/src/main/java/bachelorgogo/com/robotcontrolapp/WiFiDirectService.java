@@ -109,12 +109,6 @@ public class WiFiDirectService extends Service {
         super.onCreate();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         setUpWiFiDirectChannel();
-        mPeerListListener = new WifiP2pManager.PeerListListener() {
-            @Override
-            public void onPeersAvailable(WifiP2pDeviceList peers) {
-                Log.d("Peer listener:","peers available");
-            }
-        };
 
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
