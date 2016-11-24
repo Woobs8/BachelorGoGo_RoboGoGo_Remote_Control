@@ -67,9 +67,12 @@ public class SettingsClient {static final String TAG = "SettingsClient";
                         byte[] rcv = new byte[command.getAckString().length()];
                         in.read(rcv);
                         String recvString = new String(rcv);
-                        if (recvString.equals(command.getAckString())) {
+                        if(recvString.equals(command.getAckString())) {           // ACK = settings set
                             mSettinsTransmitted = true;
-                        } else {
+                        } else if(recvString.equals(command.getNackString())) {   // NACK = settings not set
+                            mSettinsTransmitted = false;
+                        } else {                                            // Unexpected = retransmit
+                            //TODO: implementent retransmit
                             mSettinsTransmitted = false;
                         }
                     }

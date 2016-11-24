@@ -91,6 +91,10 @@ public class SettingsObject {
         return CMD_ACK;
     }
 
+    public String getNackString() {
+        return CMD_NACK;
+    }
+
     // Invoked by SettingsClient. Should be overridden
     public void onSuccess(String command) {
 
