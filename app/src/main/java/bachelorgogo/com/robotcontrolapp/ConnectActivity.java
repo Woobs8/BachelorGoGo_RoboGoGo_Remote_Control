@@ -235,7 +235,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectDialogF
                             mConnected = true;
                             lstViewDevices.setAlpha((float)(1));
                             //Unlock screen orientation
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                             mDeviceObjectAdapter.clear();
                             SharedPreferences.Editor editor = mSharedPrefs.edit();
                             editor.putString(getString(R.string.settings_device_name_key), mDeviceName);
