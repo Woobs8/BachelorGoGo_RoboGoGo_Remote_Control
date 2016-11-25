@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -18,6 +19,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -72,7 +74,6 @@ public class WiFiDirectService extends Service {
     private boolean mCurrentlyBroadcastingStatus = false;
     private int mBroadcastStatusListeners = 0;
 
-
     // Network related
     private InetAddress mDeviceAddress;
     private ServerSocket mServerSocket;
@@ -85,11 +86,16 @@ public class WiFiDirectService extends Service {
     private int mHostHTTPPort = 1;
     private int mLocalUDPPort = 4999;
     private int mEstablishConnectionTimeout = 5000; //5 sec * 1000 msec
+    private int mPortPacketSize = 4;
+    private int mSettingsPacketSize = 255;
 
     // Network clients
     ControlClient mControlClient;
     RobotStatusClient mRobotStatusClient;
     SettingsClient mSettingsClient;
+
+    // SharedPreferences
+    private SharedPreferences mSharedPrefs;
 
     // Binder given to clients
     private final IBinder mBinder = (IBinder) new LocalBinder();
@@ -109,6 +115,8 @@ public class WiFiDirectService extends Service {
         super.onCreate();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         setUpWiFiDirectChannel();
+
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         mPeerListListener = new WifiP2pManager.PeerListListener() {
             @Override
@@ -203,8 +211,10 @@ public class WiFiDirectService extends Service {
             Log.d(TAG,"Adding status listener");
             mBroadcastStatusListeners++;
             if (!mCurrentlyBroadcastingStatus) {
-                mRobotStatusClient.start();
-                mCurrentlyBroadcastingStatus = true;
+                if(mRobotStatusClient != null) {
+                    mRobotStatusClient.start();
+                    mCurrentlyBroadcastingStatus = true;
+                }
             }
         }
     }
@@ -246,8 +256,11 @@ public class WiFiDirectService extends Service {
             mBroadcastStatusListeners--;
             if(mBroadcastStatusListeners <= 0) {
                 mBroadcastStatusListeners = 0;
-                mRobotStatusClient.stop();
-                mCurrentlyBroadcastingStatus = false;
+                if(mRobotStatusClient != null) {
+                    mRobotStatusClient.stop();
+                    mCurrentlyBroadcastingStatus = false;
+                }
+
             }
         }
     }
@@ -606,7 +619,7 @@ public class WiFiDirectService extends Service {
                                                     DataInputStream in = new DataInputStream(mSocket.getInputStream());
 
                                                     //read client UDP port
-                                                    byte[] rcv = new byte[4];
+                                                    byte[] rcv = new byte[mPortPacketSize];
                                                     in.read(rcv);
                                                     String dataStr = new String(rcv);
                                                     int hostUDPPort = Integer.valueOf(dataStr);
@@ -639,6 +652,24 @@ public class WiFiDirectService extends Service {
                                                     //Send UDP port to client
                                                     byte[] send = Integer.toString(mLocalUDPPort).getBytes();
                                                     out.write(send);
+
+                                                    //read settings from robot
+                                                    byte[] settings_msg = new byte[mSettingsPacketSize];
+                                                    in.read(settings_msg);
+                                                    dataStr = new String(settings_msg);
+                                                    SettingsObject settings = new SettingsObject();
+                                                    if(settings.parseSettingsMessage(dataStr)) {
+                                                        Log.d(TAG,"Received settings: " + dataStr);
+                                                        Log.d(TAG, "Robot settings received. Storing in SharedPreferences");
+                                                        SharedPreferences.Editor editor = mSharedPrefs.edit();
+                                                        editor.putString(getString(R.string.settings_device_name_key), settings.getDeviceName());
+                                                        editor.putBoolean(getString(R.string.settings_power_save_mode_key), settings.getPowerMode());
+                                                        editor.putBoolean(getString(R.string.settings_assisted_driving_mode_key), settings.getAssistedDrivingMode());
+                                                        editor.putString(getString(R.string.settings_video_key), settings.getResolution());
+                                                        editor.commit();
+                                                    } else {
+                                                        mConnected = false;
+                                                    }
 
                                                 } catch (SocketTimeoutException st) {
                                                     Log.d(TAG,"Attempt to establish connection timed out");
@@ -720,7 +751,7 @@ public class WiFiDirectService extends Service {
                                                         out.write(send);
 
                                                         //read owner UDP port
-                                                        byte[] rcv = new byte[4];
+                                                        byte[] rcv = new byte[mPortPacketSize];
                                                         in.read(rcv);
                                                         String dataStr = new String(rcv);
                                                         int hostUDPPort = Integer.valueOf(dataStr);
@@ -747,6 +778,23 @@ public class WiFiDirectService extends Service {
                                                         else
                                                             mConnected = false;
                                                         Log.d(TAG, "HTTP server resolved to: " + mDeviceAddress + " (port " + mHostHTTPPort + ")");
+
+                                                        //read settings from robot
+                                                        byte[] settings_msg = new byte[mSettingsPacketSize];
+                                                        in.read(settings_msg);
+                                                        dataStr = new String(settings_msg);
+                                                        SettingsObject settings = new SettingsObject();
+                                                        if(settings.parseSettingsMessage(dataStr)) {
+                                                            Log.d(TAG, "Robot settings received. Storing in SharedPreferences");
+                                                            SharedPreferences.Editor editor = mSharedPrefs.edit();
+                                                            editor.putString(getString(R.string.settings_device_name_key), settings.getDeviceName());
+                                                            editor.putBoolean(getString(R.string.settings_power_save_mode_key), settings.getPowerMode());
+                                                            editor.putBoolean(getString(R.string.settings_assisted_driving_mode_key), settings.getAssistedDrivingMode());
+                                                            editor.putString(getString(R.string.settings_video_key), settings.getResolution());
+                                                            editor.commit();
+                                                        } else {
+                                                            mConnected = false;
+                                                        }
 
                                                     } catch (SocketTimeoutException st) {
                                                         Log.d(TAG,"Attempt to establish connection timed out");

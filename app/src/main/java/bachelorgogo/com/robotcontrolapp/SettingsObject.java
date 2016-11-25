@@ -2,6 +2,8 @@ package bachelorgogo.com.robotcontrolapp;
 
 
 /////////////////// Import of Protocol to send/receive //////////////////////////
+import android.util.Log;
+
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.SEND_COMMANDS.*;
 import static bachelorgogo.com.robotcontrolapp.RobotProtocol.DATA_TAGS.*;
 /////////////////////////////////////////////////////////////////////////////////
@@ -25,6 +27,10 @@ public class SettingsObject {
 
     SettingsObject() {
         setSettings("","1",false, false);
+    }
+
+    SettingsObject(String settings) {
+        parseSettingsMessage(settings);
     }
 
     public void setSettings(String name, String videoQuality, boolean powerMode, boolean assistedDrivingMode) {
@@ -93,6 +99,66 @@ public class SettingsObject {
 
     public String getNackString() {
         return CMD_NACK;
+    }
+
+    public boolean parseSettingsMessage(String settings) {
+        if(settings.contains(CMD_SETTINGS)) {
+            settings = settings.substring(settings.indexOf("*") + 4);
+
+            String segmentedSettings[] = settings.split(";");
+
+            for (int i = 0; i < segmentedSettings.length; i++) {
+                String tempDataSegment[] = segmentedSettings[i].split(":");
+                switch (tempDataSegment[0]) {
+                    case CAR_NAME_TAG:
+                        mDeviceName = tempDataSegment[1];
+                        break;
+                    case CAMERA_VIDEO_QUALITY_TAG:
+                        mVideoQualityIndex = tempDataSegment[1];
+                        break;
+                    case POWER_SAVE_DRIVE_MODE_TAG:
+                        switch(tempDataSegment[1]) {
+                            case "0":
+                                mPowerSaveMode = false;
+                                break;
+                            case "1":
+                                mPowerSaveMode = true;
+                                break;
+                        }
+                        break;
+                    case ASSISTED_DRIVE_MODE_TAG:
+                        switch(tempDataSegment[1]) {
+                            case "0":
+                                mAssistedDrivingMode = false;
+                                break;
+                            case "1":
+                                mAssistedDrivingMode = true;
+                                break;
+                        }
+                        break;
+                }
+            }
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    public String getDeviceName() {
+        return mDeviceName;
+    }
+
+    public String getResolution() {
+        return mVideoQualityIndex;
+    }
+
+    public boolean getPowerMode() {
+        return mPowerSaveMode;
+    }
+
+    public boolean getAssistedDrivingMode() {
+        return mAssistedDrivingMode;
     }
 
     // Invoked by SettingsClient. Should be overridden
