@@ -71,7 +71,7 @@ implements TextureView.SurfaceTextureListener {
     private boolean WASLONGCLICK = false;
 
     // Joystick Parameters
-    private int JOYSTICK_SEND_DELAY_IN_MS  = 300;
+    private int JOYSTICK_SEND_DELAY_IN_MS  = 250;
     private boolean SEND_JOYSTICK_INFORMATION = false;
     private Joystick js;
     private Handler sendJoystickHandler = new Handler();
@@ -249,8 +249,18 @@ implements TextureView.SurfaceTextureListener {
             public void run()
             {
                 Log.d(TAG, "SEND_JOYSTICK_INFORMATION is set to true");
-                SEND_JOYSTICK_INFORMATION = true;
+                // We will ONLY send Joystick Information about 3 times a Second
+                // The Commands Are not necessary to Send more often than that
 
+                // Send Commands with the Object
+                //mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
+                mCommandObject.setCommandWithPowerAndAngle(js.getDistancePercentage(),js.getAngle());
+                /// / Send the Obejct through Wifi
+                if(SEND_JOYSTICK_INFORMATION)
+                    mService.sendCommandObject(mCommandObject);
+                // Timer is Called to make sure We are only sending 3 times a second
+                sendJoystickHandler.removeCallbacks(sendJoystickRunnable);
+                sendJoystickHandler.postDelayed(sendJoystickRunnable, JOYSTICK_SEND_DELAY_IN_MS);
             }
         };
 
@@ -263,18 +273,21 @@ implements TextureView.SurfaceTextureListener {
             AngleTxt.setVisibility(View.GONE);
             PowerTxt.setVisibility(View.GONE);
         }
-
+        sendJoystickHandler.postDelayed(sendJoystickRunnable, JOYSTICK_SEND_DELAY_IN_MS);
         // If Joystick Is Touched And OnTouchListener is implemented to
         // Handle User imputs on the Joystick
         layout_joystick.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
 
                 if ( arg1.getAction() == MotionEvent.ACTION_DOWN  || arg1.getAction() == MotionEvent.ACTION_MOVE)
-                {  }
-                else if (arg1.getAction() == MotionEvent.ACTION_UP)
                 {
                     // When joystick is released Force joystick to be reset on screen
                     SEND_JOYSTICK_INFORMATION = true;
+                }
+                else if (arg1.getAction() == MotionEvent.ACTION_UP)
+                {
+                    // When joystick is released Force joystick to be reset on screen
+                    SEND_JOYSTICK_INFORMATION = false;
                 }
                 // Draw the Joystick On the Coordinate gotten in MotionEvent arg1
                 js.drawStick(arg1);
@@ -286,20 +299,6 @@ implements TextureView.SurfaceTextureListener {
                     String power = String.format("%.2f", js.getDistancePercentage());
                     AngleTxt.setText(angle + "degree");
                     PowerTxt.setText(power + " %");
-                }
-
-                // We will ONLY send Joystick Information about 3 times a Second
-                // The Commands Are not necessary to Send more often than that
-                if(SEND_JOYSTICK_INFORMATION){
-                    // Send Commands with the Object
-                    mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
-                    // Send the Obejct through Wifi
-                    mService.sendCommandObject(mCommandObject);
-
-                    SEND_JOYSTICK_INFORMATION = false;
-                    // Timer is Called to make sure We are only sending 3 times a second
-                    sendJoystickHandler.removeCallbacks(sendJoystickRunnable);
-                    sendJoystickHandler.postDelayed(sendJoystickRunnable, JOYSTICK_SEND_DELAY_IN_MS);
                 }
                 return true;
             }

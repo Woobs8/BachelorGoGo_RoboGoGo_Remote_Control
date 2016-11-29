@@ -31,7 +31,7 @@ public class Joystick {
     private int stick_width, stick_height;
 
     private int position_x = 0, position_y = 0;
-    private double distance = 0, angle = 0;
+    private float distance = 0, angle = 0;
 
     private DrawCanvas draw;
 
@@ -116,11 +116,11 @@ public class Joystick {
         return (int)(getY() * 100 / (float)(mParams.height/2 - mMaxJoystickDistance));
     }
 
-    public double getDistancePercentage() {
+    public float getDistancePercentage() {
         return getDistance() * 100 / mMaxJoystickDistance;
     }
 
-    public double getAngle() {
+    public float getAngle() {
         if(distance > mMinJoystickDistance && JOYSTICK_IS_TOUCHED) {
             if(Math.signum((float)(getX())) == 1){
                 return ((angle+90)%180);
@@ -210,7 +210,7 @@ public class Joystick {
         angle = 0;
     }
 
-    private double getDistance() {
+    private float getDistance() {
         if(distance > mMinJoystickDistance && distance < ((mParams.width / 2) - mMaxJoystickDistance) && JOYSTICK_IS_TOUCHED) {
             return distance;
         }
