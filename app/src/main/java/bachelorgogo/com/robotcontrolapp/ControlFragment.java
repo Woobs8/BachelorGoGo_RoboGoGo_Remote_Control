@@ -248,10 +248,6 @@ implements TextureView.SurfaceTextureListener {
         {
             public void run()
             {
-                Log.d(TAG, "SEND_JOYSTICK_INFORMATION is set to true");
-                // We will ONLY send Joystick Information about 3 times a Second
-                // The Commands Are not necessary to Send more often than that
-
                 // Send Commands with the Object
                 mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
                 //mCommandObject.setCommandWithPowerAndAngle(js.getDistancePercentage(),js.getAngle());
