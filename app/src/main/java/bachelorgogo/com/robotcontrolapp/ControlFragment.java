@@ -71,7 +71,7 @@ implements TextureView.SurfaceTextureListener {
     private boolean WASLONGCLICK = false;
 
     // Joystick Parameters
-    private int JOYSTICK_SEND_DELAY_IN_MS  = 250;
+    private int JOYSTICK_SEND_DELAY_IN_MS  = 50;
     private boolean SEND_JOYSTICK_INFORMATION = false;
     private Joystick js;
     private Handler sendJoystickHandler = new Handler();
@@ -253,8 +253,8 @@ implements TextureView.SurfaceTextureListener {
                 // The Commands Are not necessary to Send more often than that
 
                 // Send Commands with the Object
-                //mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
-                mCommandObject.setCommandWithPowerAndAngle(js.getDistancePercentage(),js.getAngle());
+                mCommandObject.setCommandWithCoordinates(js.getXpercent(),js.getYpercent());
+                //mCommandObject.setCommandWithPowerAndAngle(js.getDistancePercentage(),js.getAngle());
                 /// / Send the Obejct through Wifi
                 if(SEND_JOYSTICK_INFORMATION)
                     mService.sendCommandObject(mCommandObject);
